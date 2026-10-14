@@ -10,7 +10,10 @@ class DictionaryRepository:
         self._client = client
 
     async def is_valid(self, word: str, length: int) -> bool:
-        raise NotImplementedError
+        return await dictionary.is_valid_guess(self._client, word, length)
 
     async def random_answer(self, length: int) -> str:
-        raise NotImplementedError
+        try:
+            return await dictionary.random_answer(self._client, length)
+        except (redis.RedisError, RuntimeError):
+            return dictionary.random_answer_fallback(length)

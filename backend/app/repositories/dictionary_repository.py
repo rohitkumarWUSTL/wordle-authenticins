@@ -13,7 +13,4 @@ class DictionaryRepository:
         return await dictionary.is_valid_guess(self._client, word, length)
 
     async def random_answer(self, length: int) -> str:
-        try:
-            return await dictionary.random_answer(self._client, length)
-        except (redis.RedisError, RuntimeError):
-            return dictionary.random_answer_fallback(length)
+        return await dictionary.random_answer(self._client, length)

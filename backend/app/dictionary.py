@@ -12,7 +12,6 @@ demand by scripts.generate_words if missing.
 from __future__ import annotations
 
 import json
-import random
 from pathlib import Path
 
 import redis.asyncio as redis
@@ -85,9 +84,3 @@ async def random_answer(client: redis.Redis, length: int) -> str:
     if word is None:
         raise RuntimeError(f"No answers seeded for length {length}")
     return word
-
-
-def random_answer_fallback(length: int, path: Path = DATA_PATH) -> str:
-    """Used only if Redis is unavailable; picks uniformly from the JSON."""
-    data = _load_words(path)
-    return random.choice(data[str(length)]["answers"])

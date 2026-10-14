@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 from app.models.game import GameStatus
@@ -24,6 +26,8 @@ class GameResponse(BaseModel):
     id: int
     word_length: int
     status: GameStatus
+    created_at: datetime
+    updated_at: datetime
     guesses: list[GuessResponse] = []
 
 

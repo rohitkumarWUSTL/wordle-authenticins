@@ -25,8 +25,6 @@ class GameRepository:
         word: str,
         guess_number: int,
         feedback: list,
+        status: GameStatus,
     ) -> Guess:
-        raise NotImplementedError
-
-    async def update_status(self, game: Game, status: GameStatus) -> None:
         raise NotImplementedError

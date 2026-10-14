@@ -1,5 +1,7 @@
+import logging
 from contextlib import asynccontextmanager
 
+import redis.asyncio as redis
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -7,6 +9,8 @@ from sqlalchemy import text
 from app.cache import redis_client
 from app.db import engine, init_db
 from app.dictionary import ensure_words_json, seed_dictionary
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -16,8 +20,8 @@ async def lifespan(app: FastAPI):
         await redis_client.ping()
         ensure_words_json()
         await seed_dictionary(redis_client)
-    except Exception as exc:  # noqa: BLE001
-        print(f"Dictionary seeding failed on startup: {exc}")
+    except (redis.RedisError, OSError) as exc:
+        logger.warning("Dictionary seeding failed on startup: %s", exc)
     yield
     await engine.dispose()
     await redis_client.aclose()

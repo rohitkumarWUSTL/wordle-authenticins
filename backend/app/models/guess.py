@@ -1,15 +1,24 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, TypedDict
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 
 if TYPE_CHECKING:
     from app.models.game import Game
+
+
+FeedbackColor = Literal["GRAY", "YELLOW", "GREEN"]
+
+
+class FeedbackItem(TypedDict):
+    letter: str
+    index: int
+    color: FeedbackColor
 
 
 class Guess(Base):
@@ -24,6 +33,7 @@ class Guess(Base):
     )
     word: Mapped[str] = mapped_column(String(8), nullable=False)
     guess_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    feedback: Mapped[list[FeedbackItem]] = mapped_column(JSON, nullable=False, default=list)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

@@ -1,9 +1,15 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
+
+if TYPE_CHECKING:
+    from app.models.game import Game
 
 
 class Guess(Base):
@@ -22,4 +28,4 @@ class Guess(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    game: Mapped["Game"] = relationship(back_populates="guesses")
+    game: Mapped[Game] = relationship(back_populates="guesses")

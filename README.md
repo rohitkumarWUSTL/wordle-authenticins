@@ -110,6 +110,30 @@ API documentation is automatically available at `http://localhost:8000/docs`.
 - `backend/main.py` - Add your API endpoints here
 - `backend/requirements.txt` - Add any additional Python dependencies
 
+### Backend Services
+
+The backend uses two supporting services, both started automatically by `docker compose up`:
+
+- **SQLite** — file-based database, no setup required. The database file lives at `backend/data/wordle.db` (mounted into the container at `/app/data/wordle.db`). The schema is created automatically on startup from the SQLAlchemy models in `backend/app/models/`. To reset the database, delete `backend/data/wordle.db` and restart the backend.
+- **Redis** — used for caching. Runs as the `redis` service in `docker-compose.yml` and is reachable at `redis://redis:6379/0` from inside the backend container.
+
+#### Environment variables
+
+The backend reads the following environment variables (see `backend/.env.example`):
+
+| Variable       | Default                                          | Description                          |
+| -------------- | ------------------------------------------------ | ------------------------------------ |
+| `DATABASE_URL` | `sqlite+aiosqlite:////app/data/wordle.db`        | SQLAlchemy async database URL        |
+| `REDIS_URL`    | `redis://redis:6379/0`                           | Redis connection URL                 |
+
+#### Health check
+
+`GET /health` returns the status of the backend and its dependencies:
+
+```json
+{ "status": "healthy", "db": "ok", "redis": "ok" }
+```
+
 ### Development Workflow
 
 1. Start the backend with `docker compose up --build`
@@ -117,4 +141,3 @@ API documentation is automatically available at `http://localhost:8000/docs`.
 3. Build your API endpoints in `backend/main.py`
 4. Build your UI in the `frontend/src/` directory
 5. The frontend is configured to make requests to `http://localhost:8000`
-

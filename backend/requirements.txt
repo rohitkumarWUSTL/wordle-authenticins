@@ -4,3 +4,4 @@ sqlalchemy>=2.0
 aiosqlite>=0.20
 redis>=5.0
 pydantic-settings>=2.0
+wordfreq>=3.1

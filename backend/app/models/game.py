@@ -1,9 +1,16 @@
+import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, String, func
+from sqlalchemy import DateTime, Enum, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
+
+
+class GameStatus(str, enum.Enum):
+    IN_PROGRESS = "IN_PROGRESS"
+    WON = "WON"
+    LOST = "LOST"
 
 
 class Game(Base):
@@ -12,6 +19,12 @@ class Game(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     word_length: Mapped[int] = mapped_column(Integer, nullable=False)
     target_word: Mapped[str] = mapped_column(String(8), nullable=False)
+    status: Mapped[GameStatus] = mapped_column(
+        Enum(GameStatus, native_enum=False, length=16),
+        nullable=False,
+        default=GameStatus.IN_PROGRESS,
+        server_default=GameStatus.IN_PROGRESS.value,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

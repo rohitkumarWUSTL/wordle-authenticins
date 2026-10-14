@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
+from app.api.routes import games
 from app.cache import redis_client
 from app.db import engine, init_db
 from app.dictionary import ensure_words_json, seed_dictionary
@@ -37,6 +38,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(games.router, prefix="/games", tags=["games"])
 
 
 @app.get("/")

@@ -64,26 +64,25 @@ class GameService:
     def _generate_feedback(
         self, guess: str, target: str
     ) -> list[FeedbackItem]:
+        feedback: list[FeedbackItem] = [
+            {"letter": letter, "index": i, "color": "GRAY"}
+            for i, letter in enumerate(guess)
+        ]
         remaining = Counter(target)
-        feedback: list[FeedbackItem | None] = [None] * len(guess)
 
         # First pass: greens consume their letters from the pool.
         for i, (g, t) in enumerate(zip(guess, target)):
             if g == t:
-                feedback[i] = {"letter": g, "index": i, "color": "GREEN"}
+                feedback[i]["color"] = "GREEN"
                 remaining[g] -= 1
 
-        # Second pass: yellows consume what's left, everything else is gray.
+        # Second pass: promote grays to yellows where letters remain.
         for i, g in enumerate(guess):
-            if feedback[i] is not None:
-                continue
-            if remaining[g] > 0:
-                feedback[i] = {"letter": g, "index": i, "color": "YELLOW"}
+            if feedback[i]["color"] == "GRAY" and remaining[g] > 0:
+                feedback[i]["color"] = "YELLOW"
                 remaining[g] -= 1
-            else:
-                feedback[i] = {"letter": g, "index": i, "color": "GRAY"}
 
-        return feedback  # type: ignore[return-value]
+        return feedback
 
     def _resolve_status(
         self,

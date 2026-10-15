@@ -23,8 +23,8 @@ from app.repositories.game_repository import GameRepository
         ("zzzzz", "apple", ["GRAY"] * 5),
         ("eppla", "apple", ["YELLOW", "GREEN", "GREEN", "GREEN", "YELLOW"]),
         # Duplicate letters: greens consume first, then yellows.
-        ("allee", "apple", ["GREEN", "YELLOW", "GRAY", "YELLOW", "GREEN"]),
-        ("eerie", "apple", ["YELLOW", "GRAY", "GRAY", "GRAY", "GREEN"]),
+        ("allee", "apple", ["GREEN", "YELLOW", "GRAY", "GRAY", "GREEN"]),
+        ("eerie", "apple", ["GRAY", "GRAY", "GRAY", "GRAY", "GREEN"]),
     ],
 )
 def test_generate_feedback(

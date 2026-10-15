@@ -15,6 +15,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.constants import MAX_WORD_LENGTH
 from app.db import Base
 
 if TYPE_CHECKING:
@@ -46,7 +47,7 @@ class Guess(Base):
     game_id: Mapped[int] = mapped_column(
         ForeignKey("games.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    word: Mapped[str] = mapped_column(String(8), nullable=False)
+    word: Mapped[str] = mapped_column(String(MAX_WORD_LENGTH), nullable=False)
     guess_number: Mapped[int] = mapped_column(Integer, nullable=False)
     feedback: Mapped[list[FeedbackItem]] = mapped_column(JSON, nullable=False, default=list)
     created_at: Mapped[datetime] = mapped_column(

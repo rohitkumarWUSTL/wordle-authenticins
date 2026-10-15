@@ -17,7 +17,7 @@ from pathlib import Path
 import redis.asyncio as redis
 from wordfreq import zipf_frequency
 
-WORD_LENGTHS = (5, 6, 7, 8)
+from app.constants import MAX_WORD_LENGTH, MIN_WORD_LENGTH
 
 DATA_PATH = Path(__file__).resolve().parent / "data" / "words.json"
 
@@ -56,7 +56,7 @@ async def seed_dictionary(
     """Seed Redis from the words JSON, per-partition, only if missing."""
     data = _load_words(path)
 
-    for length in WORD_LENGTHS:
+    for length in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH+1):
         entry = data[str(length)]
 
         answer_key = _answer_key(length)

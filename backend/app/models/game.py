@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import DateTime, Enum, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.constants import MAX_WORD_LENGTH 
 from app.db import Base
 
 if TYPE_CHECKING:
@@ -24,7 +25,7 @@ class Game(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     word_length: Mapped[int] = mapped_column(Integer, nullable=False)
-    target_word: Mapped[str] = mapped_column(String(8), nullable=False)
+    target_word: Mapped[str] = mapped_column(String(MAX_WORD_LENGTH), nullable=False)
     status: Mapped[GameStatus] = mapped_column(
         Enum(GameStatus, native_enum=False, length=16),
         nullable=False,

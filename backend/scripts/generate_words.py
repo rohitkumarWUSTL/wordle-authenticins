@@ -22,9 +22,10 @@ import json
 import os
 from pathlib import Path
 
-from wordfreq import iter_wordlist, zipf_frequency
+from wordfreq import iter_wordlist
 
-WORD_LENGTHS = (5, 6, 7, 8)
+from app.constants import MAX_WORD_LENGTH, MIN_WORD_LENGTH
+
 ANSWER_COUNT = 1000
 GUESS_COUNT = 25000
 
@@ -36,7 +37,7 @@ def _collect_words() -> dict[str, dict[str, list[str]]]:
     # Bucket words by length as we stream the frequency-ordered wordlist.
     # iter_wordlist yields words in descending frequency order, so the first
     # N words we see for a given length are the top N by frequency.
-    buckets: dict[int, list[str]] = {n: [] for n in WORD_LENGTHS}
+    buckets: dict[int, list[str]] = {n: [] for n in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH+1)}
     max_needed = max(GUESS_COUNT, ANSWER_COUNT)
 
     for word in iter_wordlist("en"):
@@ -49,11 +50,11 @@ def _collect_words() -> dict[str, dict[str, list[str]]]:
         if len(bucket) >= max_needed:
             continue
         bucket.append(word)
-        if all(len(buckets[n]) >= max_needed for n in WORD_LENGTHS):
+        if all(len(buckets[n]) >= max_needed for n in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH+1)):
             break
 
     result: dict[str, dict[str, list[str]]] = {}
-    for length in WORD_LENGTHS:
+    for length in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH+1):
         words = buckets[length]
         # iter_wordlist is already frequency-ordered, so slicing preserves order.
         answers = words[:ANSWER_COUNT]

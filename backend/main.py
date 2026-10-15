@@ -32,10 +32,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# Configure CORS
+# Configure CORS. The regex covers GitHub Codespaces forwarded frontend
+# origins (https://<codespace>-5173.app.github.dev), which change per
+# codespace, while the explicit origin covers local development.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
+    allow_origin_regex=r"https://.*-5173\.app\.github\.dev",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

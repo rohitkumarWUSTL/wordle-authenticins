@@ -1,0 +1,23 @@
+
+## Routing
+
+| Path          | Component         | Notes                                    |
+| ------------- | ----------------- | ---------------------------------------- |
+| `/`           | redirect          | → `/games`                               |
+| `/games`      | `GamesPage`       | list + filter + pagination               |
+| `/games/:id`  | `GameDetailPage`  | placeholder; will become the play view   |
+
+## API contract
+
+Base URL: `http://localhost:8000`.
+
+### `GET /games`
+
+Query params:
+
+- `status` (optional) — one of `IN_PROGRESS`, `WON`, `LOST`. Omit for all.
+- `limit` (default 20, 1–100)
+- `offset` (default 0)
+
+Response:
+

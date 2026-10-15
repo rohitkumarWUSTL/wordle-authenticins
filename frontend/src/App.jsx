@@ -1,33 +1,15 @@
-import { useState, useEffect } from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
-
-const API_URL = 'http://localhost:8000'
+import GamesPage from './pages/GamesPage.jsx'
+import GameDetailPage from './pages/GameDetailPage.jsx'
 
 function App() {
-  const [message, setMessage] = useState('')
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetch(`${API_URL}/`)
-      .then((response) => response.json())
-      .then((data) => {
-        setMessage(data.message)
-        setLoading(false)
-      })
-      .catch((error) => {
-        console.error('Error fetching from API:', error)
-        setMessage('Failed to connect to API')
-        setLoading(false)
-      })
-  }, [])
-
   return (
-    <>
-      <h1>Wordle</h1>
-      <div className="card">
-        <p>API Response: {loading ? 'Loading...' : message}</p>
-      </div>
-    </>
+    <Routes>
+      <Route path="/" element={<Navigate to="/games" replace />} />
+      <Route path="/games" element={<GamesPage />} />
+      <Route path="/games/:id" element={<GameDetailPage />} />
+    </Routes>
   )
 }
 

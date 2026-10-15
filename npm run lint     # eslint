@@ -1,0 +1,6 @@
+
+The backend is expected to be running at `http://localhost:8000` (see
+`src/api/client.js` → `API_URL`). CORS is handled on the backend side.
+
+## File structure
+

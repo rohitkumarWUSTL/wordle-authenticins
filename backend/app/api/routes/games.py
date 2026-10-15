@@ -11,6 +11,7 @@ from app.api.schemas.game import (
 )
 from app.application.game_service import GameService
 from app.dependencies import get_game_service
+from app.models.game import GameStatus
 
 router = APIRouter()
 
@@ -27,9 +28,10 @@ async def create_game(
 async def list_games(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    status: GameStatus | None = Query(None),
     service: GameService = Depends(get_game_service),
 ) -> GameListResponse:
-    items, total = await service.list_games(limit, offset)
+    items, total = await service.list_games(limit, offset, status)
     return GameListResponse(items=items, total=total, limit=limit, offset=offset)
 
 

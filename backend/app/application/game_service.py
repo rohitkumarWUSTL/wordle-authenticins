@@ -32,8 +32,13 @@ class GameService:
             raise GameNotFound(f"Game {game_id} not found")
         return game
 
-    async def list_games(self, limit: int, offset: int) -> tuple[list[Game], int]:
-        return await self._games.list(limit, offset)
+    async def list_games(
+        self,
+        limit: int,
+        offset: int,
+        status: GameStatus | None = None,
+    ) -> tuple[list[Game], int]:
+        return await self._games.list(limit, offset, status)
 
     async def submit_guess(self, game_id: int, word: str) -> Guess:
         game = await self._games.get(game_id)

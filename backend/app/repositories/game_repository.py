@@ -25,10 +25,21 @@ class GameRepository:
     async def get(self, game_id: int) -> Game | None:
         return await self._session.get(Game, game_id)
 
-    async def list(self, limit: int, offset: int) -> tuple[list[Game], int]:
-        total = await self._session.scalar(select(func.count()).select_from(Game))
+    async def list(
+        self,
+        limit: int,
+        offset: int,
+        status: GameStatus | None = None,
+    ) -> tuple[list[Game], int]:
+        count_query = select(func.count()).select_from(Game)
+        list_query = select(Game)
+        if status is not None:
+            count_query = count_query.where(Game.status == status)
+            list_query = list_query.where(Game.status == status)
+
+        total = await self._session.scalar(count_query)
         result = await self._session.scalars(
-            select(Game)
+            list_query
             .order_by(Game.updated_at.desc())
             .limit(limit)
             .offset(offset)

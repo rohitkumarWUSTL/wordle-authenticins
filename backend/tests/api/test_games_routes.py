@@ -50,6 +50,45 @@ async def test_list_games(
     assert body["offset"] == 0
 
 
+async def test_list_games_filter_by_status(
+    client: AsyncClient, dictionary_repo: DictionaryRepository
+) -> None:
+    await _seed_answer(dictionary_repo, "apple")
+    await _seed_guess(dictionary_repo, "apple")
+
+    in_progress = await client.post("/games", json={"word_length": 5})
+    finished = await client.post("/games", json={"word_length": 5})
+    finished_id = finished.json()["id"]
+
+    # Finish one game by guessing the answer.
+    await client.post(
+        f"/games/{finished_id}/guesses", json={"word": "apple"}
+    )
+
+    response = await client.get("/games", params={"status": "IN_PROGRESS"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 1
+    assert len(body["items"]) == 1
+    assert body["items"][0]["id"] == in_progress.json()["id"]
+    assert body["items"][0]["status"] == "IN_PROGRESS"
+
+    response = await client.get("/games", params={"status": "WON"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 1
+    assert body["items"][0]["id"] == finished_id
+
+    response = await client.get("/games")
+    assert response.status_code == 200
+    assert response.json()["total"] == 2
+
+
+async def test_list_games_invalid_status(client: AsyncClient) -> None:
+    response = await client.get("/games", params={"status": "BOGUS"})
+    assert response.status_code == 422
+
+
 async def test_get_game(
     client: AsyncClient, dictionary_repo: DictionaryRepository
 ) -> None:

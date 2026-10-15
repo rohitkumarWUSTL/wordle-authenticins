@@ -42,7 +42,7 @@ class GameResponse(BaseModel):
     status: GameStatus
     created_at: datetime
     updated_at: datetime
-    guesses: list[GuessResponse] = []
+    guesses: list[GuessResponse] = Field(default=list)
 
 
 class GameListResponse(BaseModel):

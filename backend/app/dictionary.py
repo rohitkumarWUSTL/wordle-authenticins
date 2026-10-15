@@ -2,7 +2,7 @@
 
 Redis layout:
 
-    dict:answer:{length}   LIST  expanded by zipf weight (LRANDMEMBER picks target)
+    dict:answer:{length}   LIST  expanded by zipf weight (LINDEX picks target)
     dict:guess:{length}    SET   valid guesses (SISMEMBER validates)
 
 The JSON source of truth lives at app/data/words.json and is generated on
@@ -12,6 +12,7 @@ demand by scripts.generate_words if missing.
 from __future__ import annotations
 
 import json
+import random
 from pathlib import Path
 
 import redis.asyncio as redis
@@ -65,7 +66,7 @@ async def seed_dictionary(
             for word in entry["answers"]:
                 expanded.extend([word] * _weight(word))
             if expanded:
-                # LPUSH in reverse so LRANDMEMBER sees a stable order.
+                # RPUSH in reverse so LINDEX sees a stable order.
                 await client.rpush(answer_key, *reversed(expanded))
 
         guess_key = _guess_key(length)
@@ -80,7 +81,12 @@ async def is_valid_guess(client: redis.Redis, word: str, length: int) -> bool:
 
 
 async def random_answer(client: redis.Redis, length: int) -> str:
-    word = await client.lrandmember(_answer_key(length))
+    key = _answer_key(length)
+    size = await client.llen(key)
+    if size == 0:
+        raise RuntimeError(f"No answers seeded for length {length}")
+    index = random.randint(0, size - 1)
+    word = await client.lindex(key, index)
     if word is None:
         raise RuntimeError(f"No answers seeded for length {length}")
     return word

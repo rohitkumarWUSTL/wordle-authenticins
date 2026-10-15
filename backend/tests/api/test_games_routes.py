@@ -8,13 +8,13 @@ from app.repositories.dictionary_repository import DictionaryRepository
 async def _seed_answer(
     dictionary_repo: DictionaryRepository, word: str
 ) -> None:
-    await dictionary_repo._client.sadd(f"words:answer:{len(word)}", word)
+    await dictionary_repo._client.rpush(f"dict:answer:{len(word)}", word)
 
 
 async def _seed_guess(
     dictionary_repo: DictionaryRepository, word: str
 ) -> None:
-    await dictionary_repo._client.sadd(f"words:guess:{len(word)}", word)
+    await dictionary_repo._client.sadd(f"dict:guess:{len(word)}", word)
 
 
 async def test_create_game(

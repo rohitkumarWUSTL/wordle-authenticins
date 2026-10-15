@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.api.schemas.game import (
     CreateGameRequest,
@@ -20,7 +20,7 @@ async def create_game(
     payload: CreateGameRequest,
     service: GameService = Depends(get_game_service),
 ) -> GameResponse:
-    raise NotImplementedError
+    return await service.create_game(payload.word_length)
 
 
 @router.get("", response_model=GameListResponse)
@@ -29,7 +29,8 @@ async def list_games(
     offset: int = Query(0, ge=0),
     service: GameService = Depends(get_game_service),
 ) -> GameListResponse:
-    raise NotImplementedError
+    items, total = await service.list_games(limit, offset)
+    return GameListResponse(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/{game_id}", response_model=GameResponse)
@@ -37,7 +38,7 @@ async def get_game(
     game_id: int,
     service: GameService = Depends(get_game_service),
 ) -> GameResponse:
-    raise NotImplementedError
+    return await service.get_game(game_id)
 
 
 @router.post("/{game_id}/guesses", response_model=GuessResponse)
@@ -46,4 +47,4 @@ async def submit_guess(
     payload: GuessRequest,
     service: GameService = Depends(get_game_service),
 ) -> GuessResponse:
-    raise NotImplementedError
+    return await service.submit_guess(game_id, payload.word)

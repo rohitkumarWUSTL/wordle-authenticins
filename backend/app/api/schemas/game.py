@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.constants import MAX_WORD_LENGTH, MIN_WORD_LENGTH
 from app.models.game import GameStatus
@@ -16,22 +16,27 @@ class CreateGameRequest(BaseModel):
 class GuessRequest(BaseModel):
     word: str
 
-    @field_validator("word")                                                                                                                                                                                  
-    @classmethod                                                                                                                                                                                              
-    def validate_word_length(cls, v: str) -> str:                                                                                                                                                             
-        if not (MIN_WORD_LENGTH <= len(v) <= MAX_WORD_LENGTH):                                                                                                                                                
-            raise ValueError(                                                                                                                                                                                 
-                f"Invalid word length"                                                                                                                    
-            )                                                                                                                                                                                                 
-        return v 
+    @field_validator("word")
+    @classmethod
+    def validate_word_length(cls, v: str) -> str:
+        if not (MIN_WORD_LENGTH <= len(v) <= MAX_WORD_LENGTH):
+            raise ValueError(
+                f"Invalid word length"
+            )
+        return v
+
 
 class GuessResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     word: str
     guess_number: int
     feedback: list[FeedbackItem]
 
 
 class GameResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     word_length: int
     status: GameStatus

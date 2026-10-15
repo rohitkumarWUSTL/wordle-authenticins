@@ -2,14 +2,16 @@ import logging
 from contextlib import asynccontextmanager
 
 import redis.asyncio as redis
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.api.routes import games
 from app.cache import redis_client
 from app.db import engine, init_db
 from app.dictionary import ensure_words_json, seed_dictionary
+from app.models.errors import GameAlreadyFinished, GameNotFound, InvalidGuess
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +40,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(GameNotFound)
+async def _game_not_found_handler(request: Request, exc: GameNotFound) -> JSONResponse:
+    return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+
+@app.exception_handler(GameAlreadyFinished)
+async def _game_already_finished_handler(
+    request: Request, exc: GameAlreadyFinished
+) -> JSONResponse:
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+
+@app.exception_handler(InvalidGuess)
+async def _invalid_guess_handler(request: Request, exc: InvalidGuess) -> JSONResponse:
+    return JSONResponse(status_code=422, content={"detail": str(exc)})
+
 
 app.include_router(games.router, prefix="/games", tags=["games"])
 

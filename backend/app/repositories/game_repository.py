@@ -62,10 +62,10 @@ class GameRepository:
         )
         self._session.add(guess)
         game.status = status
+        # Keep the in-memory collection in sync so the returned game
+        # includes the new guess. The session is configured with
+        # expire_on_commit=False, so the collection survives the commit.
+        game.guesses.append(guess)
         await self._session.commit()
         await self._session.refresh(guess)
-        # The game's `guesses` collection was loaded before the new guess
-        # was inserted, so refresh it to pick up the new row. Without this
-        # the returned game lags one guess behind.
-        await self._session.refresh(game, ["guesses"])
         return guess

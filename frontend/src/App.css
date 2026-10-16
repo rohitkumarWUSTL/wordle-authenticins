@@ -507,7 +507,7 @@
       border-color: #3a3a3c;
       color: transparent;
     }
-    50.01% {
+    51% {
       transform: rotateX(90deg);
       background-color: var(--cell-color);
       border-color: var(--cell-color);

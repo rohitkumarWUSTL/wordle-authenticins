@@ -236,6 +236,9 @@ function GameDetailPage() {
   // a layout shift and giving the result away early.
   const showResultBanner = isFinished && showResult
   const bannerStatus = showResultBanner ? game.status.toLowerCase() : 'in_progress'
+  // Clamp the displayed guess number so the final guess doesn't briefly
+  // read "Guess 7 of 6" while the reveal animation is still running.
+  const guessNumber = Math.min(game.guesses.length + 1, maxGuesses)
 
   return (
     <div className="game-detail-page">
@@ -255,7 +258,7 @@ function GameDetailPage() {
         )}
         {!showResultBanner && (
           <span>
-            Guess {game.guesses.length + 1} of {maxGuesses}
+            Guess {guessNumber} of {maxGuesses}
           </span>
         )}
       </div>

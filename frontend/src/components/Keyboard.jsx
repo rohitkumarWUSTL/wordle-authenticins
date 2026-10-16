@@ -33,6 +33,7 @@ function Keyboard({ onKey, onEnter, onBackspace, letterStates, disabled }) {
                 className={`keyboard-key ${isWide ? 'keyboard-key-wide' : ''} ${colorClass}`.trim()}
                 onClick={() => handleClick(key)}
                 disabled={disabled}
+                aria-label={key === 'BACKSPACE' ? 'BACKSPACE' : undefined}
               >
                 {key === 'BACKSPACE' ? '⌫' : key}
               </button>

@@ -16,9 +16,10 @@ describe('NewGameButton', () => {
 
   it('offers one option per supported word length', () => {
     render(<NewGameButton variant="full" onCreate={vi.fn()} />)
+    // The placeholder option is disabled and hidden, so it is not exposed
+    // as an option role. Only the real word-length options are counted.
     const options = screen.getAllByRole('option')
-    // One placeholder option plus one per word length (5-8).
-    expect(options).toHaveLength(5)
+    expect(options).toHaveLength(4)
     expect(
       screen.getByRole('option', { name: 'Word length: 5 letters' }),
     ).toBeInTheDocument()

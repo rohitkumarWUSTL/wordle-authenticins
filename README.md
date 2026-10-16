@@ -118,26 +118,26 @@ API documentation is automatically available at `http://localhost:8000/docs`.
 
 ### Backend Services
 
-The backend uses two supporting services, both started automatically by `docker compose up`:
+The backend uses one supporting service, started automatically by `docker compose up`:
 
 - **SQLite** — file-based database, no setup required. The database file lives at `backend/data/wordle.db` (mounted into the container at `/app/data/wordle.db`). The schema is created automatically on startup from the SQLAlchemy models in `backend/app/models/`. To reset the database, delete `backend/data/wordle.db` and restart the backend.
-- **Redis** — used for caching. Runs as the `redis` service in `docker-compose.yml` and is reachable at `redis://redis:6379/0` from inside the backend container.
+
+The word list is generated at build time into `backend/app/data/words_{length}.txt` (one file per supported word length). If a file is missing at runtime, `app/dictionary.py` regenerates it on demand.
 
 #### Environment variables
 
 The backend reads the following environment variables (see `backend/.env.example`):
 
-| Variable       | Default                                          | Description                          |
-| -------------- | ------------------------------------------------ | ------------------------------------ |
-| `DATABASE_URL` | `sqlite+aiosqlite:////app/data/wordle.db`        | SQLAlchemy async database URL        |
-| `REDIS_URL`    | `redis://redis:6379/0`                           | Redis connection URL                 |
+| Variable       | Default                                   | Description                   |
+| -------------- | ----------------------------------------- | ----------------------------- |
+| `DATABASE_URL` | `sqlite+aiosqlite:////app/data/wordle.db` | SQLAlchemy async database URL |
 
 #### Health check
 
 `GET /health` returns the status of the backend and its dependencies:
 
 ```json
-{ "status": "healthy", "db": "ok", "redis": "ok" }
+{ "status": "healthy", "db": "ok" }
 ```
 
 ### Development Workflow

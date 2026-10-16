@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { createGame, listGames } from '../api/games.js'
 import { PAGE_SIZE, STATUS_ALL } from '../constants.js'
 import GameList from '../components/GameList.jsx'
@@ -9,13 +9,18 @@ import StatusFilter from '../components/StatusFilter.jsx'
 
 function GamesPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [games, setGames] = useState([])
   const [total, setTotal] = useState(0)
-  const [status, setStatus] = useState(STATUS_ALL)
-  const [offset, setOffset] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [creating, setCreating] = useState(false)
+
+  // The list state lives in the URL so that navigating to a game and back
+  // (via the "Back to games" link) restores the same filter and page, and
+  // so the state survives a refresh.
+  const status = searchParams.get('status') || STATUS_ALL
+  const offset = Number(searchParams.get('offset')) || 0
 
   useEffect(() => {
     let cancelled = false
@@ -42,17 +47,36 @@ function GamesPage() {
     }
   }, [status, offset])
 
-  const handleStatusChange = useCallback((next) => {
-    // Reset the data and flip into the loading state in the same render as
-    // the status change, so we never paint a frame with the new filter and
-    // the old (stale) total. Without this, switching to an empty filter can
-    // briefly flash the full-width empty state.
-    setStatus(next)
-    setOffset(0)
-    setGames([])
-    setTotal(0)
-    setLoading(true)
-  }, [])
+  const handleStatusChange = useCallback(
+    (next) => {
+      // Reset the data and flip into the loading state in the same render as
+      // the status change, so we never paint a frame with the new filter and
+      // the old (stale) total. Without this, switching to an empty filter can
+      // briefly flash the full-width empty state.
+      setGames([])
+      setTotal(0)
+      setLoading(true)
+      const params = new URLSearchParams()
+      if (next && next !== STATUS_ALL) {
+        params.set('status', next)
+      }
+      setSearchParams(params)
+    },
+    [setSearchParams],
+  )
+
+  const handleOffsetChange = useCallback(
+    (next) => {
+      const params = new URLSearchParams(searchParams)
+      if (next > 0) {
+        params.set('offset', String(next))
+      } else {
+        params.delete('offset')
+      }
+      setSearchParams(params)
+    },
+    [searchParams, setSearchParams],
+  )
 
   const handleCreate = useCallback(
     async (wordLength) => {
@@ -112,7 +136,7 @@ function GamesPage() {
             total={total}
             limit={PAGE_SIZE}
             offset={offset}
-            onChange={setOffset}
+            onChange={handleOffsetChange}
           />
         </>
       )}

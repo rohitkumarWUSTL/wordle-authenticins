@@ -6,10 +6,16 @@ const STATUS_LABELS = {
   LOST: 'Lost',
 }
 
+const COLOR_CLASS = {
+  GREEN: 'guess-cell-green',
+  YELLOW: 'guess-cell-yellow',
+  GRAY: 'guess-cell-gray',
+}
+
 function GameListItem({ game }) {
   const guesses = game.guesses || []
   const totalAllowed = game.word_length + 1
-  const lastGuess = guesses.length > 0 ? guesses[guesses.length - 1].word : '—'
+  const lastGuess = guesses.length > 0 ? guesses[guesses.length - 1] : null
 
   return (
     <li className="game-list-item">
@@ -21,7 +27,25 @@ function GameListItem({ game }) {
         <span className="game-list-item-guesses">
           {guesses.length} / {totalAllowed}
         </span>
-        <span className="game-list-item-last-guess">{lastGuess}</span>
+        <span className="game-list-item-last-guess">
+          {lastGuess ? (
+            lastGuess.feedback.map((item) => (
+              <span
+                key={item.index}
+                className={`guess-cell guess-cell-small ${COLOR_CLASS[item.color] || ''}`.trim()}
+              >
+                {item.letter}
+              </span>
+            ))
+          ) : (
+            <span className="game-list-item-empty">—</span>
+          )}
+        </span>
+        {game.status === 'LOST' && game.target_word && (
+          <span className="game-list-item-target">
+            Answer: <strong>{game.target_word}</strong>
+          </span>
+        )}
       </Link>
     </li>
   )

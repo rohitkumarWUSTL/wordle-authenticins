@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from app.repositories.dictionary_repository import DictionaryRepository
-from tests._words import seed_answer, seed_empty, seed_guess
+from tests._words import seed_answer, seed_empty, seed_scrabble
 
 
 async def test_is_valid_hit(dictionary_repo: DictionaryRepository) -> None:
-    seed_guess("apple")
+    seed_scrabble(["apple"])
     assert await dictionary_repo.is_valid("apple", 5) is True
 
 

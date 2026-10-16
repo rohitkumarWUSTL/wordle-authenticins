@@ -367,6 +367,7 @@
   font-weight: 500;
   background-color: #2b4a7a;
   color: #d6e4f5;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 .game-status-banner.game-status-won {
@@ -377,10 +378,6 @@
 .game-status-banner.game-status-lost {
   background-color: #7a2b2b;
   color: #f5d6d6;
-}
-
-.game-status-banner-hidden {
-  visibility: hidden;
 }
 
 .game-give-up-row {

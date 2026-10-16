@@ -1,6 +1,6 @@
 import { KEYBOARD_ROWS } from '../constants.js'
 
-const COLOR_CLASS = {
+const KEYBOARD_COLOR_CLASS = {
   GREEN: 'keyboard-key-green',
   YELLOW: 'keyboard-key-yellow',
   GRAY: 'keyboard-key-gray',
@@ -25,7 +25,7 @@ function Keyboard({ onKey, onEnter, onBackspace, letterStates, disabled }) {
           {row.map((key) => {
             const isWide = key === 'ENTER' || key === 'BACKSPACE'
             const state = letterStates[key]
-            const colorClass = state ? COLOR_CLASS[state] || '' : ''
+            const colorClass = state ? KEYBOARD_COLOR_CLASS[state] || '' : ''
             return (
               <button
                 key={key}

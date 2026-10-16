@@ -1,8 +1,4 @@
-const COLOR_CLASS = {
-  GREEN: 'guess-cell-green',
-  YELLOW: 'guess-cell-yellow',
-  GRAY: 'guess-cell-gray',
-}
+import { GUESS_CELL_COLOR_CLASS } from '../constants.js'
 
 const COLOR_HEX = {
   GREEN: '#6ca965',
@@ -41,7 +37,7 @@ function GuessGrid({
         // animation's --cell-color variable, not the class. Applying the
         // class too would show the final color during the animation delay.
         if (!isAnimating) {
-          colorClass = item ? COLOR_CLASS[item.color] || '' : ''
+          colorClass = item ? GUESS_CELL_COLOR_CLASS[item.color] || '' : ''
         }
         cellColor = item ? COLOR_HEX[item.color] || null : null
       } else if (isActiveRow) {

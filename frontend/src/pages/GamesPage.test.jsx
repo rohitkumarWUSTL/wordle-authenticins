@@ -70,6 +70,12 @@ describe('GamesPage', () => {
     ).toBeInTheDocument()
   })
 
+  it('shows an error message when the API fails', async () => {
+    gamesApi.listGames.mockRejectedValue(new Error('boom'))
+    renderPage()
+    expect(await screen.findByText('Error: boom')).toBeInTheDocument()
+  })
+
   it('creates a game and navigates to it', async () => {
     gamesApi.listGames.mockResolvedValue({ items: [], total: 0 })
     gamesApi.createGame.mockResolvedValue({ id: 7 })

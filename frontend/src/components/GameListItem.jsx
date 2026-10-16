@@ -1,15 +1,10 @@
 import { Link, useLocation } from 'react-router-dom'
+import { GUESS_CELL_COLOR_CLASS } from '../constants.js'
 
 const STATUS_LABELS = {
   IN_PROGRESS: 'In progress',
   WON: 'Won',
   LOST: 'Lost',
-}
-
-const COLOR_CLASS = {
-  GREEN: 'guess-cell-green',
-  YELLOW: 'guess-cell-yellow',
-  GRAY: 'guess-cell-gray',
 }
 
 function GameListItem({ game }) {
@@ -37,7 +32,7 @@ function GameListItem({ game }) {
             lastGuess.feedback.map((item) => (
               <span
                 key={item.index}
-                className={`guess-cell guess-cell-small ${COLOR_CLASS[item.color] || ''}`.trim()}
+                className={`guess-cell guess-cell-small ${GUESS_CELL_COLOR_CLASS[item.color] || ''}`.trim()}
               >
                 {item.letter}
               </span>

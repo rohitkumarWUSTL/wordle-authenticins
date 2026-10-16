@@ -16,3 +16,9 @@ export const KEYBOARD_ROWS = [
   ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
   ['ENTER', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'BACKSPACE'],
 ]
+
+export const GUESS_CELL_COLOR_CLASS = {
+  GREEN: 'guess-cell-green',
+  YELLOW: 'guess-cell-yellow',
+  GRAY: 'guess-cell-gray',
+}

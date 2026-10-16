@@ -16,18 +16,11 @@ Each file has the shape:
     their
     ...
 
-    # guesses
-    about
-    their
-    ...
-
 The source of truth is a TWL06 Scrabble word list (see SOURCE_PATH). TWL06
 already excludes proper nouns, so no name filtering is needed. Answers are
 the top ANSWER_COUNT words by zipf frequency for that length that pass the
-answer filter (frequency floor, and not a plural). The ``# guesses`` section
-is retained for backwards compatibility with the file format, but guess
-validation now reads twl06.txt directly (see app/dictionary.py), so the
-contents of that section are not used at runtime.
+answer filter (frequency floor, and not a plural). Guess validation reads
+twl06.txt directly (see app/dictionary.py), so no guess list is generated.
 """
 
 from __future__ import annotations
@@ -101,7 +94,7 @@ def _is_plural(word: str, source: set[str]) -> bool:
 
 def _collect_words(
     source: set[str], all_words: set[str]
-) -> dict[int, dict[str, list[str]]]:
+) -> dict[int, list[str]]:
     # Bucket the source words by length, then sort each bucket by descending
     # zipf frequency so the most common words come first.
     buckets: dict[int, list[str]] = {
@@ -110,7 +103,7 @@ def _collect_words(
     for word in source:
         buckets[len(word)].append(word)
 
-    result: dict[int, dict[str, list[str]]] = {}
+    result: dict[int, list[str]] = {}
     for length in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH + 1):
         words = sorted(
             buckets[length],
@@ -123,11 +116,7 @@ def _collect_words(
             if zipf_frequency(w, "en") >= MIN_ZIPF_ANSWERS
             and not _is_plural(w, all_words)
         ][:ANSWER_COUNT]
-        # The guesses section is no longer used for validation (see
-        # app/dictionary.py), but we keep writing it so the file format is
-        # unchanged. It mirrors the full length-filtered word list.
-        guesses = words
-        result[length] = {"answers": answers, "guesses": guesses}
+        result[length] = answers
     return result
 
 
@@ -135,17 +124,12 @@ def _words_path(length: int, data_dir: Path = DATA_DIR) -> Path:
     return data_dir / f"words_{length}.txt"
 
 
-def _write_words_file(
-    path: Path, answers: list[str], guesses: list[str]
-) -> None:
+def _write_words_file(path: Path, answers: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(".txt.tmp")
     with tmp_path.open("w", encoding="utf-8") as f:
         f.write("# answers\n")
         for word in answers:
-            f.write(f"{word}\n")
-        f.write("\n# guesses\n")
-        for word in guesses:
             f.write(f"{word}\n")
     os.replace(tmp_path, path)
 
@@ -160,12 +144,8 @@ def generate(data_dir: Path = DATA_DIR) -> Path:
         if MIN_WORD_LENGTH <= len(w) <= MAX_WORD_LENGTH
     }
     data = _collect_words(source, all_words)
-    for length, entry in data.items():
-        _write_words_file(
-            _words_path(length, data_dir),
-            entry["answers"],
-            entry["guesses"],
-        )
+    for length, answers in data.items():
+        _write_words_file(_words_path(length, data_dir), answers)
     return data_dir
 
 

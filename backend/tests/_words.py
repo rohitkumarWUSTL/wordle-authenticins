@@ -17,9 +17,8 @@ from pathlib import Path
 from app import dictionary
 
 
-def read_words_file(path: Path) -> tuple[list[str], list[str]]:
+def read_words_file(path: Path) -> list[str]:
     answers: list[str] = []
-    guesses: list[str] = []
     section: list[str] | None = None
     with path.open("r", encoding="utf-8") as f:
         for raw in f:
@@ -29,24 +28,16 @@ def read_words_file(path: Path) -> tuple[list[str], list[str]]:
             if line == "# answers":
                 section = answers
                 continue
-            if line == "# guesses":
-                section = guesses
-                continue
             if section is not None:
                 section.append(line)
-    return answers, guesses
+    return answers
 
 
-def write_words_file(
-    data_dir: Path, length: int, answers: list[str], guesses: list[str]
-) -> None:
+def write_words_file(data_dir: Path, length: int, answers: list[str]) -> None:
     path = data_dir / f"words_{length}.txt"
     with path.open("w", encoding="utf-8") as f:
         f.write("# answers\n")
         for word in answers:
-            f.write(f"{word}\n")
-        f.write("\n# guesses\n")
-        for word in guesses:
             f.write(f"{word}\n")
 
 
@@ -60,11 +51,10 @@ def seed_answer(word: str) -> None:
     length = len(word)
     path = data_dir / f"words_{length}.txt"
     answers: list[str] = []
-    guesses: list[str] = []
     if path.exists():
-        answers, guesses = read_words_file(path)
+        answers = read_words_file(path)
     answers.append(word)
-    write_words_file(data_dir, length, answers, guesses)
+    write_words_file(data_dir, length, answers)
     _clear_caches()
 
 
@@ -82,5 +72,5 @@ def seed_scrabble(words: list[str]) -> None:
 
 
 def seed_empty(length: int) -> None:
-    write_words_file(dictionary.DATA_DIR, length, [], [])
+    write_words_file(dictionary.DATA_DIR, length, [])
     _clear_caches()

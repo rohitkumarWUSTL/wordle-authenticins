@@ -35,16 +35,6 @@ def test_is_valid_guess_rejects_wrong_length(data_dir) -> None:
     assert dictionary.is_valid_guess("apple", 6) is False
 
 
-def test_is_valid_guess_ignores_guesses_section(data_dir) -> None:
-    """A word in the generated guesses section is not valid unless it's
-    also in twl06.txt."""
-    seed_empty(5)
-    # seed_empty writes an empty words_5.txt; the guesses section is empty.
-    # Now write a twl06.txt that does NOT contain "apple".
-    seed_scrabble(["crane"])
-    assert dictionary.is_valid_guess("apple", 5) is False
-
-
 def test_is_valid_guess_reads_from_scrabble_not_answers(data_dir) -> None:
     """A word in the answers section is not valid unless it's also in
     twl06.txt."""

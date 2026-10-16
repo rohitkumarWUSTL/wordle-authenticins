@@ -4,12 +4,9 @@ Layout:
 
     app/data/words_{length}.txt
 
-Each file has two sections:
+Each file has a single section:
 
     # answers
-    <one word per line>
-
-    # guesses
     <one word per line>
 
 Answers are picked uniformly at random from the answer pool (matching
@@ -51,10 +48,9 @@ def ensure_words_txt(length: int) -> Path:
 
 
 @lru_cache(maxsize=None)
-def _load_words(length: int) -> tuple[tuple[str, ...], frozenset[str]]:
+def _load_words(length: int) -> tuple[str, ...]:
     path = ensure_words_txt(length)
     answers: list[str] = []
-    guesses: list[str] = []
     section: list[str] | None = None
     with path.open("r", encoding="utf-8") as f:
         for raw in f:
@@ -64,12 +60,9 @@ def _load_words(length: int) -> tuple[tuple[str, ...], frozenset[str]]:
             if line == "# answers":
                 section = answers
                 continue
-            if line == "# guesses":
-                section = guesses
-                continue
             if section is not None:
                 section.append(line)
-    return tuple(answers), frozenset(guesses)
+    return tuple(answers)
 
 
 @lru_cache(maxsize=None)
@@ -108,7 +101,7 @@ def is_valid_guess(word: str, length: int) -> bool:
 
 
 def random_answer(length: int) -> str:
-    answers, _ = _load_words(length)
+    answers = _load_words(length)
     if not answers:
         raise RuntimeError(f"No answers seeded for length {length}")
     return random.choice(answers)

@@ -10,6 +10,8 @@ npm install
 npm run dev      # start Vite dev server (default http://localhost:5173)
 npm run build    # production build
 npm run lint     # eslint
+npm test         # run the test suite once
+npm run test:watch  # run tests in watch mode
 ```
 
 The backend is expected to be running at `http://localhost:8000` (see
@@ -35,23 +37,31 @@ If you change the frontend or backend port, update the rewrite in
 src/
   main.jsx                    # entry point; wraps <App/> in <BrowserRouter>
   App.jsx                     # route table only
-  constants.js                # MIN/MAX_WORD_LENGTH, WORD_LENGTHS, PAGE_SIZE, status values
+  constants.js                # MIN/MAX_WORD_LENGTH, WORD_LENGTHS, PAGE_SIZE, status values, KEYBOARD_ROWS
   api/
     client.js                 # API_URL + fetch wrapper (throws on non-2xx)
-    games.js                  # listGames, createGame, getGame
+    games.js                  # listGames, createGame, getGame, submitGuess, giveUp
   pages/
-    GamesPage.jsx             # /games — list, filter, pagination, new-game modal
-    GameDetailPage.jsx        # /games/:id — placeholder for now
+    GamesPage.jsx             # /games — list, filter, pagination, new-game dropdown
+    GameDetailPage.jsx        # /games/:id — play view: grid, keyboard, banner, give-up
   components/
     GameList.jsx              # renders a list of GameListItem
     GameListItem.jsx          # one row: name, status, guesses, last guess; links to detail
+    GuessGrid.jsx             # the guess grid; handles the flip reveal animation
+    Keyboard.jsx              # on-screen keyboard with per-letter state colors
     NewGameButton.jsx         # "Start new game" (full) or "+" (compact) variants
-    NewGameModal.jsx          # <dialog>-based modal with word-length radios
     Pagination.jsx            # prev/next + "Page X of Y"
     StatusFilter.jsx          # <select> for All / Active games
+    ConfirmModal.jsx          # <dialog>-based confirm modal (used for give-up)
+  test/
+    setup.js                  # jest-dom matchers + RTL cleanup
+    renderWithRouter.jsx      # helper for rendering components inside a MemoryRouter
   App.css                     # component styles
   index.css                   # global styles
 ```
+
+Tests live next to the files they cover (e.g.
+`src/components/GuessGrid.test.jsx`, `src/pages/GameDetailPage.test.jsx`).
 
 ## Routing
 
@@ -59,7 +69,11 @@ src/
 | ------------- | ----------------- | ---------------------------------------- |
 | `/`           | redirect          | → `/games`                               |
 | `/games`      | `GamesPage`       | list + filter + pagination               |
-| `/games/:id`  | `GameDetailPage`  | placeholder; will become the play view   |
+| `/games/:id`  | `GameDetailPage`  | play view: grid, keyboard, banner        |
+
+The games list keeps its filter and page in the URL query string
+(`/games?status=IN_PROGRESS&offset=20`) so that navigating into a game and
+back restores the same view, and so the state survives a refresh.
 
 ## API contract
 
@@ -105,6 +119,15 @@ as an item above).
 
 Returns a single game object. 404 if not found.
 
+### `POST /games/:id/guesses`
+
+Body: `{ "word": "crane" }`. Returns the updated game object. 422 if the
+word is not a valid guess, 409 if the game is already finished.
+
+### `POST /games/:id/give-up`
+
+Ends the game and reveals the answer. Returns the updated game object.
+
 ## Conventions
 
 - **Filter values**: frontend state uses `'ALL'` or `'IN_PROGRESS'`. `'ALL'`
@@ -117,15 +140,21 @@ Returns a single game object. 404 if not found.
 - **Total allowed guesses**: `word_length + 1` (mirrors the backend's
   `_resolve_status` rule in `game_service.py`).
 - **Game list row** shows: `Game {id}`, status label, `{guesses.length} /
-  {word_length + 1}`, and the last guess word (or `—` if none).
-- **New game flow**: modal → `POST /games` → navigate to `/games/:id`.
+  {word_length + 1}`, and the last guess feedback (or `—` if none).
+- **New game flow**: dropdown → `POST /games` → navigate to `/games/:id`.
 - **Status labels**: `IN_PROGRESS` → "In progress", `WON` → "Won",
   `LOST` → "Lost" (see `GameListItem.jsx`).
+- **Reveal animation**: after a guess, the new row flips in
+  (`FLIP_STAGGER_MS` per column + `FLIP_DURATION_MS`). The status banner and
+  the keyboard colors only update once the flip finishes, so the result
+  isn't given away early and nothing shifts.
+- **Layout stability**: the status banner and the give-up row are always
+  rendered (hidden via `visibility` when not applicable) so the board and
+  keyboard don't jump when the game ends.
 
 ## Notes for future work
 
-- `GameDetailPage` is a placeholder; the play view (guess input, feedback
-  grid) is not implemented yet.
 - No global state library; each page fetches what it needs.
-- No tests yet on the frontend.
 - `react-router-dom` v7 is used; routes are declared in `App.jsx`.
+- Tests use Vitest + React Testing Library; see `src/test/setup.js` for the
+  shared setup and `src/test/renderWithRouter.jsx` for the router helper.

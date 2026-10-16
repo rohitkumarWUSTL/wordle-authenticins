@@ -157,3 +157,40 @@ async def test_submit_guess_after_finished(
         f"/games/{game_id}/guesses", json={"word": "apple"}
     )
     assert second.status_code == 409
+
+
+async def test_give_up(
+    client: AsyncClient, dictionary_repo: DictionaryRepository
+) -> None:
+    seed_answer("apple")
+    created = await client.post("/games", json={"word_length": 5})
+    game_id = created.json()["id"]
+
+    response = await client.post(f"/games/{game_id}/give-up")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == game_id
+    assert body["status"] == "LOST"
+    assert body["target_word"] == "apple"
+
+
+async def test_give_up_not_found(client: AsyncClient) -> None:
+    response = await client.post("/games/999/give-up")
+    assert response.status_code == 404
+
+
+async def test_give_up_after_finished(
+    client: AsyncClient, dictionary_repo: DictionaryRepository
+) -> None:
+    seed_answer("apple")
+    seed_guess("apple")
+    created = await client.post("/games", json={"word_length": 5})
+    game_id = created.json()["id"]
+
+    first = await client.post(
+        f"/games/{game_id}/guesses", json={"word": "apple"}
+    )
+    assert first.status_code == 200
+
+    response = await client.post(f"/games/{game_id}/give-up")
+    assert response.status_code == 409

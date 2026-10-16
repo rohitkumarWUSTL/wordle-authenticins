@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getGame, submitGuess } from '../api/games.js'
+import { getGame, giveUp, submitGuess } from '../api/games.js'
+import ConfirmModal from '../components/ConfirmModal.jsx'
 import GuessGrid from '../components/GuessGrid.jsx'
 import Keyboard from '../components/Keyboard.jsx'
 
@@ -14,6 +15,7 @@ function GameDetailPage() {
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [guessError, setGuessError] = useState(null)
+  const [showGiveUp, setShowGiveUp] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -96,6 +98,21 @@ function GameDetailPage() {
     }
   }, [currentGuess, id, isFinished, submitting, wordLength])
 
+  const handleGiveUpConfirm = useCallback(async () => {
+    setShowGiveUp(false)
+    setSubmitting(true)
+    setGuessError(null)
+    try {
+      const updated = await giveUp(id)
+      setGame(updated)
+      setCurrentGuess('')
+    } catch (err) {
+      setGuessError(err.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }, [id])
+
   useEffect(() => {
     const onKeyDown = (event) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return
@@ -160,6 +177,19 @@ function GameDetailPage() {
         )}
       </div>
 
+      {!isFinished && (
+        <div className="game-give-up-row">
+          <button
+            type="button"
+            className="game-give-up-button"
+            onClick={() => setShowGiveUp(true)}
+            disabled={submitting}
+          >
+            Give up
+          </button>
+        </div>
+      )}
+
       <GuessGrid
         guesses={game.guesses}
         wordLength={wordLength}
@@ -175,6 +205,17 @@ function GameDetailPage() {
         onBackspace={handleBackspace}
         letterStates={letterStates}
         disabled={isFinished || submitting}
+      />
+
+      <ConfirmModal
+        open={showGiveUp}
+        title="Give up?"
+        message="This will end the game and reveal the answer."
+        confirmLabel="Give up"
+        cancelLabel="Keep playing"
+        danger
+        onConfirm={handleGiveUpConfirm}
+        onCancel={() => setShowGiveUp(false)}
       />
     </div>
   )

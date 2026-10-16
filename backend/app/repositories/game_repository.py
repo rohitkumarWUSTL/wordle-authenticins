@@ -65,3 +65,9 @@ class GameRepository:
         await self._session.commit()
         await self._session.refresh(guess)
         return guess
+
+    async def mark_lost(self, game: Game) -> Game:
+        game.status = GameStatus.LOST
+        await self._session.commit()
+        await self._session.refresh(game)
+        return game

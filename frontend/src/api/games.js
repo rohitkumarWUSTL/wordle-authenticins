@@ -29,3 +29,9 @@ export async function submitGuess(id, word) {
     body: JSON.stringify({ word }),
   })
 }
+
+export async function giveUp(id) {
+  return request(`/games/${id}/give-up`, {
+    method: 'POST',
+  })
+}

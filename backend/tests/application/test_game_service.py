@@ -193,3 +193,33 @@ async def test_submit_guess_loss_after_max_attempts(
     game = await game_service.get_game(game_id)
     assert game.status == GameStatus.LOST
     assert len(game.guesses) == 6
+
+
+# --- give_up --------------------------------------------------------------
+
+
+async def test_give_up_marks_lost(
+    game_service: GameService,
+    dictionary_repo: DictionaryRepository,
+) -> None:
+    game_id = await _make_game(game_service)
+    game = await game_service.give_up(game_id)
+    assert game.status == GameStatus.LOST
+    assert game.target_word == "apple"
+
+
+async def test_give_up_not_found(game_service: GameService) -> None:
+    with pytest.raises(GameNotFound):
+        await game_service.give_up(999)
+
+
+async def test_give_up_after_finished(
+    game_service: GameService,
+    dictionary_repo: DictionaryRepository,
+) -> None:
+    game_id = await _make_game(game_service)
+    seed_guess("apple")
+
+    await game_service.submit_guess(game_id, "apple")
+    with pytest.raises(GameAlreadyFinished):
+        await game_service.give_up(game_id)

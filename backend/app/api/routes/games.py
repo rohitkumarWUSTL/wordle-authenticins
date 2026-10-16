@@ -65,3 +65,12 @@ async def submit_guess(
     service: GameService = Depends(get_game_service),
 ) -> GuessResponse:
     return await service.submit_guess(game_id, payload.word)
+
+
+@router.post("/{game_id}/give-up", response_model=GameResponse)
+async def give_up(
+    game_id: int,
+    service: GameService = Depends(get_game_service),
+) -> GameResponse:
+    game = await service.give_up(game_id)
+    return _to_response(game)

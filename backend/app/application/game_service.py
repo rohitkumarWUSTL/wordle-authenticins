@@ -56,6 +56,14 @@ class GameService:
             game, word, guess_number, feedback, status
         )
 
+    async def give_up(self, game_id: int) -> Game:
+        game = await self._games.get(game_id)
+        if game is None:
+            raise GameNotFound(f"Game {game_id} not found")
+        if game.status != GameStatus.IN_PROGRESS:
+            raise GameAlreadyFinished(f"Game {game_id} is already finished")
+        return await self._games.mark_lost(game)
+
     async def _validate_guess(self, word: str, length: int) -> str:
         word = word.lower()
         if len(word) != length:

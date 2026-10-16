@@ -24,10 +24,10 @@ Each file has the shape:
 The source of truth is a TWL06 Scrabble word list (see SOURCE_PATH). TWL06
 already excludes proper nouns, so no name filtering is needed. Answers are
 the top ANSWER_COUNT words by zipf frequency for that length that pass the
-answer filter (frequency floor). Guesses are the top GUESS_COUNT words by
-zipf frequency for that length that pass the guess filter (lower frequency
-floor only, so real words that happen to be obscure are still accepted as
-guesses). Answers are always a subset of guesses.
+answer filter (frequency floor, and not a plural). Guesses are the top
+GUESS_COUNT words by zipf frequency for that length that pass the guess
+filter (lower frequency floor only, so real words that happen to be obscure
+are still accepted as guesses). Answers are always a subset of guesses.
 """
 
 from __future__ import annotations
@@ -67,6 +67,28 @@ def _load_source_words(path: Path = SOURCE_PATH) -> set[str]:
     return words
 
 
+def _is_plural(word: str, source: set[str]) -> bool:
+    """Heuristic: a word is a plural if stripping a plural suffix yields
+    another word in the source list.
+
+    Used to keep plurals out of the answer pool (Wordle never uses them as
+    answers) while still allowing them as guesses. Irregular plurals
+    (``mice``, ``geese``) are not detected; they are rare at the supported
+    word lengths and mostly fall below the answer frequency floor.
+    """
+    if word.endswith("ies") and word[:-3] + "y" in source:
+        return True
+    if word.endswith("ves") and word[:-3] + "f" in source:
+        return True
+    if word.endswith("ves") and word[:-3] + "fe" in source:
+        return True
+    if word.endswith("es") and word[:-2] in source:
+        return True
+    if word.endswith("s") and word[:-1] in source:
+        return True
+    return False
+
+
 def _collect_words(source: set[str]) -> dict[int, dict[str, list[str]]]:
     # Bucket the source words by length, then sort each bucket by descending
     # zipf frequency so the most common words come first.
@@ -87,6 +109,7 @@ def _collect_words(source: set[str]) -> dict[int, dict[str, list[str]]]:
             w
             for w in words
             if zipf_frequency(w, "en") >= MIN_ZIPF_ANSWERS
+            and not _is_plural(w, source)
         ][:ANSWER_COUNT]
         guesses = [
             w

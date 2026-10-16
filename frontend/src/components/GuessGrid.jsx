@@ -39,7 +39,12 @@ function GuessGrid({
       if (guess) {
         const item = guess.feedback[colIndex]
         letter = item ? item.letter : ''
-        colorClass = item ? COLOR_CLASS[item.color] || '' : ''
+        // While the flip animation is running, the color comes from the
+        // animation's --cell-color variable, not the class. Applying the
+        // class too would show the final color during the animation delay.
+        if (!isAnimating) {
+          colorClass = item ? COLOR_CLASS[item.color] || '' : ''
+        }
         cellColor = item ? COLOR_HEX[item.color] || null : null
       } else if (isActiveRow) {
         letter = currentGuess[colIndex] || ''

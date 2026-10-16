@@ -490,8 +490,8 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .guess-cell-flip {
-    animation: guess-cell-flip 0.6s ease-in-out forwards;
-    animation-delay: calc(var(--col, 0) * 150ms);
+    animation: guess-cell-flip 0.6s ease-in-out both;
+    animation-delay: calc(var(--col, 0) * 100ms);
   }
 
   @keyframes guess-cell-flip {

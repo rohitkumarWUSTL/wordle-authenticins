@@ -7,7 +7,7 @@ import Keyboard from '../components/Keyboard.jsx'
 
 const COLOR_RANK = { GREEN: 3, YELLOW: 2, GRAY: 1 }
 
-const FLIP_STAGGER_MS = 150
+const FLIP_STAGGER_MS = 100
 const FLIP_DURATION_MS = 600
 const SHAKE_DURATION_MS = 400
 const TOAST_DURATION_MS = 1500
@@ -119,9 +119,11 @@ function GameDetailPage() {
       await submitGuess(id, currentGuess)
       const updated = await getGame(id)
       const newRowIndex = updated.guesses.length - 1
+      // Set the animating row and the new game state in the same batch so
+      // the cells render once, with the flip animation already applied.
+      setAnimatingRow(newRowIndex)
       setGame(updated)
       setCurrentGuess('')
-      setAnimatingRow(newRowIndex)
       if (animTimer.current) clearTimeout(animTimer.current)
       animTimer.current = setTimeout(
         () => setAnimatingRow(-1),

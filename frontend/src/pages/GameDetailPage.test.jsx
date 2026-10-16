@@ -93,12 +93,12 @@ describe('GameDetailPage', () => {
 
   it('keeps the guess counter until the reveal animation finishes, then morphs to the result', async () => {
     gamesApi.getGame.mockResolvedValueOnce(makeGame())
-    gamesApi.submitGuess.mockResolvedValue({})
-    const wonGame = makeGame({
-      status: 'WON',
-      guesses: [makeGuess('crane', Array(5).fill('GREEN'))],
-    })
-    gamesApi.getGame.mockResolvedValueOnce(wonGame)
+    gamesApi.submitGuess.mockResolvedValue(
+      makeGame({
+        status: 'WON',
+        guesses: [makeGuess('crane', Array(5).fill('GREEN'))],
+      }),
+    )
 
     renderPage()
     await screen.findByText('Guess 1 of 6')
@@ -123,11 +123,11 @@ describe('GameDetailPage', () => {
 
   it('recolors the keyboard only after the reveal animation finishes', async () => {
     gamesApi.getGame.mockResolvedValueOnce(makeGame())
-    gamesApi.submitGuess.mockResolvedValue({})
-    const updated = makeGame({
-      guesses: [makeGuess('crane', Array(5).fill('GREEN'))],
-    })
-    gamesApi.getGame.mockResolvedValueOnce(updated)
+    gamesApi.submitGuess.mockResolvedValue(
+      makeGame({
+        guesses: [makeGuess('crane', Array(5).fill('GREEN'))],
+      }),
+    )
 
     renderPage()
     await screen.findByText('Guess 1 of 6')

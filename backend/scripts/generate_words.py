@@ -24,10 +24,10 @@ Each file has the shape:
 The source of truth is a TWL06 Scrabble word list (see SOURCE_PATH). TWL06
 already excludes proper nouns, so no name filtering is needed. Answers are
 the top ANSWER_COUNT words by zipf frequency for that length that pass the
-answer filter (frequency floor, and not a plural). Guesses are the top
-GUESS_COUNT words by zipf frequency for that length that pass the guess
-filter (lower frequency floor only, so real words that happen to be obscure
-are still accepted as guesses). Answers are always a subset of guesses.
+answer filter (frequency floor, and not a plural). The ``# guesses`` section
+is retained for backwards compatibility with the file format, but guess
+validation now reads twl06.txt directly (see app/dictionary.py), so the
+contents of that section are not used at runtime.
 """
 
 from __future__ import annotations
@@ -39,14 +39,11 @@ from wordfreq import zipf_frequency
 
 from app.constants import MAX_WORD_LENGTH, MIN_WORD_LENGTH
 
-# Frequency floors. Answers are held to a higher bar than guesses so the
-# answer pool feels like Wordle's curated list, while guesses stay permissive
-# enough that players rarely hit "not a valid word".
+# Frequency floor for answers. Answers are held to a higher bar than guesses
+# so the answer pool feels like Wordle's curated list.
 MIN_ZIPF_ANSWERS = 3.5
-MIN_ZIPF_GUESSES = 2.0
 
 ANSWER_COUNT = 2500
-GUESS_COUNT = 15000
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "app" / "data"
 SOURCE_PATH = DATA_DIR / "twl06.txt"
@@ -126,11 +123,10 @@ def _collect_words(
             if zipf_frequency(w, "en") >= MIN_ZIPF_ANSWERS
             and not _is_plural(w, all_words)
         ][:ANSWER_COUNT]
-        guesses = [
-            w
-            for w in words
-            if zipf_frequency(w, "en") >= MIN_ZIPF_GUESSES
-        ][:GUESS_COUNT]
+        # The guesses section is no longer used for validation (see
+        # app/dictionary.py), but we keep writing it so the file format is
+        # unchanged. It mirrors the full length-filtered word list.
+        guesses = words
         result[length] = {"answers": answers, "guesses": guesses}
     return result
 

@@ -9,6 +9,7 @@ const COLOR_RANK = { GREEN: 3, YELLOW: 2, GRAY: 1 }
 
 const FLIP_STAGGER_MS = 100
 const FLIP_DURATION_MS = 600
+const BOUNCE_DURATION_MS = 800
 const SHAKE_DURATION_MS = 400
 const TOAST_DURATION_MS = 1500
 
@@ -23,20 +24,28 @@ function GameDetailPage() {
   const [showGiveUp, setShowGiveUp] = useState(false)
   const [animatingRow, setAnimatingRow] = useState(-1)
   const [shake, setShake] = useState(false)
+  const [showWinBanner, setShowWinBanner] = useState(false)
 
   const toastTimer = useRef(null)
   const animTimer = useRef(null)
   const shakeTimer = useRef(null)
+  const winBannerTimer = useRef(null)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError(null)
+    setShowWinBanner(false)
 
     getGame(id)
       .then((data) => {
         if (cancelled) return
         setGame(data)
+        // On a fresh load there is no reveal animation to wait for, so
+        // show the win banner immediately if the game is already won.
+        if (data.status === 'WON') {
+          setShowWinBanner(true)
+        }
       })
       .catch((err) => {
         if (cancelled) return
@@ -57,6 +66,7 @@ function GameDetailPage() {
       if (toastTimer.current) clearTimeout(toastTimer.current)
       if (animTimer.current) clearTimeout(animTimer.current)
       if (shakeTimer.current) clearTimeout(shakeTimer.current)
+      if (winBannerTimer.current) clearTimeout(winBannerTimer.current)
     }
   }, [])
 
@@ -129,6 +139,17 @@ function GameDetailPage() {
         () => setAnimatingRow(-1),
         wordLength * FLIP_STAGGER_MS + FLIP_DURATION_MS,
       )
+      // Delay the win banner until after the flip reveal and the bounce
+      // animation on the winning row have both finished.
+      if (updated.status === 'WON') {
+        if (winBannerTimer.current) clearTimeout(winBannerTimer.current)
+        winBannerTimer.current = setTimeout(
+          () => setShowWinBanner(true),
+          wordLength * FLIP_STAGGER_MS +
+            FLIP_DURATION_MS +
+            BOUNCE_DURATION_MS,
+        )
+      }
     } catch (err) {
       showToast(err.message)
       triggerShake()
@@ -212,7 +233,7 @@ function GameDetailPage() {
       <h1>Game {game.id}</h1>
 
       <div className={`game-status-banner game-status-${game.status.toLowerCase()}`}>
-        {game.status === 'WON' && <span>You won! 🎉</span>}
+        {game.status === 'WON' && showWinBanner && <span>You won! 🎉</span>}
         {game.status === 'LOST' && (
           <span>You lost — the word was {game.target_word}</span>
         )}

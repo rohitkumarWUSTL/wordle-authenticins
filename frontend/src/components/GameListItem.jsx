@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 const STATUS_LABELS = {
   IN_PROGRESS: 'In progress',
@@ -13,13 +13,18 @@ const COLOR_CLASS = {
 }
 
 function GameListItem({ game }) {
+  const location = useLocation()
   const guesses = game.guesses || []
   const totalAllowed = game.word_length + 1
   const lastGuess = guesses.length > 0 ? guesses[guesses.length - 1] : null
 
   return (
     <li className="game-list-item">
-      <Link to={`/games/${game.id}`} className="game-list-item-link">
+      <Link
+        to={`/games/${game.id}`}
+        state={{ from: location }}
+        className="game-list-item-link"
+      >
         <span className="game-list-item-name">Game {game.id}</span>
         <span className={`game-list-item-status status-${game.status.toLowerCase()}`}>
           {STATUS_LABELS[game.status] || game.status}

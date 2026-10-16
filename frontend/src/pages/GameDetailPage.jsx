@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { getGame, giveUp, submitGuess } from '../api/games.js'
 import ConfirmModal from '../components/ConfirmModal.jsx'
 import GuessGrid from '../components/GuessGrid.jsx'
@@ -15,6 +15,10 @@ const TOAST_DURATION_MS = 1500
 
 function GameDetailPage() {
   const { id } = useParams()
+  const location = useLocation()
+  // Where to return to when the user clicks "Back to games". Falls back to
+  // the games list root when the page was opened directly (no state).
+  const backTo = location.state?.from ?? '/games'
   const [game, setGame] = useState(null)
   // A snapshot of `game` used for the keyboard colors. It lags behind
   // `game` while the reveal animation is running, so the keyboard doesn't
@@ -214,7 +218,7 @@ function GameDetailPage() {
     return (
       <div className="game-detail-page">
         <p>
-          <Link to="/games">← Back to games</Link>
+          <Link to={backTo}>← Back to games</Link>
         </p>
         <p className="games-status">Loading…</p>
       </div>
@@ -225,7 +229,7 @@ function GameDetailPage() {
     return (
       <div className="game-detail-page">
         <p>
-          <Link to="/games">← Back to games</Link>
+          <Link to={backTo}>← Back to games</Link>
         </p>
         <p className="games-status games-error">Error: {error}</p>
       </div>
@@ -245,7 +249,7 @@ function GameDetailPage() {
   return (
     <div className="game-detail-page">
       <p>
-        <Link to="/games">← Back to games</Link>
+        <Link to={backTo}>← Back to games</Link>
       </p>
       <h1>Game {game.id}</h1>
 

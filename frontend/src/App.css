@@ -10,6 +10,12 @@
   }
 }
 
+@media (max-height: 800px) {
+  #root {
+    padding: 1rem 0.75rem;
+  }
+}
+
 .games-page {
   display: flex;
   flex-direction: column;
@@ -348,6 +354,12 @@
   gap: 1rem;
 }
 
+@media (max-height: 800px) {
+  .game-detail-page {
+    gap: 0.5rem;
+  }
+}
+
 .game-status-banner {
   padding: 0.75rem 1rem;
   border-radius: 8px;
@@ -447,20 +459,26 @@
   align-items: center;
 }
 
+@media (max-height: 800px) {
+  .guess-grid {
+    gap: 0.25rem;
+  }
+}
+
 .guess-row {
   display: flex;
   gap: 0.4rem;
 }
 
 .guess-cell {
-  width: clamp(2.25rem, 11vw, 3.5rem);
-  height: clamp(2.25rem, 11vw, 3.5rem);
+  width: min(clamp(2.25rem, 11vw, 3.5rem), 8vh);
+  height: min(clamp(2.25rem, 11vw, 3.5rem), 8vh);
   display: flex;
   align-items: center;
   justify-content: center;
   border: 2px solid #3a3a3c;
   border-radius: 4px;
-  font-size: clamp(1.1rem, 5.5vw, 1.75rem);
+  font-size: min(clamp(1.1rem, 5.5vw, 1.75rem), 4vh);
   font-weight: 700;
   text-transform: uppercase;
   color: #eee;
@@ -567,6 +585,13 @@
   width: 100%;
 }
 
+@media (max-height: 800px) {
+  .keyboard {
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+  }
+}
+
 .keyboard-row {
   display: flex;
   gap: 0.3rem;
@@ -576,7 +601,7 @@
 
 .keyboard-key {
   min-width: clamp(1.5rem, 7vw, 2rem);
-  height: clamp(2.25rem, 9vw, 3rem);
+  height: min(clamp(2.25rem, 9vw, 3rem), 6vh);
   padding: 0 0.5rem;
   border-radius: 4px;
   border: none;

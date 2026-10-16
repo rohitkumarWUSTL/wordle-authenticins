@@ -399,24 +399,6 @@
   font-size: 0.75rem;
 }
 
-.keyboard-key-green {
-  background-color: #1f6f43;
-  border-color: #1f6f43;
-  color: #fff;
-}
-
-.keyboard-key-yellow {
-  background-color: #b59f3b;
-  border-color: #b59f3b;
-  color: #fff;
-}
-
-.keyboard-key-gray {
-  background-color: #3a3a3c;
-  border-color: #3a3a3c;
-  color: #fff;
-}
-
 @media (prefers-color-scheme: light) {
   .status-filter select,
   .pagination button,
@@ -472,4 +454,25 @@
   .keyboard-key:hover:not(:disabled) {
     background-color: #dcdcdc;
   }
+}
+
+/* Keyboard key state colors.
+   Placed after the light-mode block so they win the cascade in both
+   color schemes (media queries don't add specificity). */
+.keyboard-key-green {
+  background-color: #1f6f43;
+  border-color: #1f6f43;
+  color: #fff;
+}
+
+.keyboard-key-yellow {
+  background-color: #b59f3b;
+  border-color: #b59f3b;
+  color: #fff;
+}
+
+.keyboard-key-gray {
+  background-color: #3a3a3c;
+  border-color: #3a3a3c;
+  color: #fff;
 }

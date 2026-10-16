@@ -225,6 +225,8 @@ function GameDetailPage() {
     return null
   }
 
+  const winBannerPending = game.status === 'WON' && !showWinBanner
+
   return (
     <div className="game-detail-page">
       <p>
@@ -232,8 +234,12 @@ function GameDetailPage() {
       </p>
       <h1>Game {game.id}</h1>
 
-      <div className={`game-status-banner game-status-${game.status.toLowerCase()}`}>
-        {game.status === 'WON' && showWinBanner && <span>You won! 🎉</span>}
+      <div
+        className={`game-status-banner game-status-${game.status.toLowerCase()}${
+          winBannerPending ? ' game-status-banner-hidden' : ''
+        }`}
+      >
+        {game.status === 'WON' && <span>You won! 🎉</span>}
         {game.status === 'LOST' && (
           <span>You lost — the word was {game.target_word}</span>
         )}

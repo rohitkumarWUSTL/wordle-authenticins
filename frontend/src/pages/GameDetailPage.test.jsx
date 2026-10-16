@@ -60,7 +60,9 @@ describe('GameDetailPage', () => {
   afterEach(() => {
     cleanup()
     vi.useRealTimers()
-    vi.clearAllMocks()
+    // resetAllMocks (not clearAllMocks) so mock implementations set in one
+    // test don't leak into the next.
+    vi.resetAllMocks()
     delete globalThis.jest
   })
 

@@ -241,7 +241,9 @@ function GameDetailPage() {
       >
         {game.status === 'WON' && <span>You won! 🎉</span>}
         {game.status === 'LOST' && (
-          <span>You lost — the word was {game.target_word}</span>
+          <span>
+            You lost — the word was {game.target_word.toUpperCase()}
+          </span>
         )}
         {game.status === 'IN_PROGRESS' && (
           <span>

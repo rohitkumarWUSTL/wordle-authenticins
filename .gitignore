@@ -211,4 +211,4 @@ __marimo__/
 backend/data/
 
 # Generated word list (regenerated on startup if missing)
-backend/app/data/
+backend/app/data/words_*

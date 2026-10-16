@@ -67,12 +67,19 @@ def _seed_guess(word: str) -> None:
     dictionary._weighted_answers.cache_clear()
 
 
+def _seed_empty(length: int) -> None:
+    _write_words_file(dictionary.DATA_DIR, length, [], [])
+    dictionary._load_words.cache_clear()
+    dictionary._weighted_answers.cache_clear()
+
+
 async def test_is_valid_hit(dictionary_repo: DictionaryRepository) -> None:
     _seed_guess("apple")
     assert await dictionary_repo.is_valid("apple", 5) is True
 
 
 async def test_is_valid_miss(dictionary_repo: DictionaryRepository) -> None:
+    _seed_empty(5)
     assert await dictionary_repo.is_valid("zzzzz", 5) is False
 
 

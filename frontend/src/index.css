@@ -29,7 +29,7 @@ body {
 }
 
 h1 {
-  font-size: 3.2em;
+  font-size: clamp(1.75rem, 6vw, 3.2em);
   line-height: 1.1;
 }
 

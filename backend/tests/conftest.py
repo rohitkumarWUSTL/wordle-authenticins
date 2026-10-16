@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
-import fakeredis.aioredis
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (
@@ -11,8 +11,8 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from app import dictionary
 from app.application.game_service import GameService
-from app.cache import get_redis
 from app.db import Base, get_db
 from app.repositories.dictionary_repository import DictionaryRepository
 from app.repositories.game_repository import GameRepository
@@ -34,10 +34,13 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 @pytest.fixture
-async def redis_client() -> AsyncGenerator[fakeredis.aioredis.FakeRedis, None]:
-    client = fakeredis.aioredis.FakeRedis(decode_responses=True)
-    yield client
-    await client.aclose()
+def data_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    monkeypatch.setattr(dictionary, "DATA_DIR", tmp_path)
+    dictionary._load_words.cache_clear()
+    dictionary._weighted_answers.cache_clear()
+    yield tmp_path
+    dictionary._load_words.cache_clear()
+    dictionary._weighted_answers.cache_clear()
 
 
 @pytest.fixture
@@ -46,10 +49,8 @@ async def game_repo(db_session: AsyncSession) -> GameRepository:
 
 
 @pytest.fixture
-async def dictionary_repo(
-    redis_client: fakeredis.aioredis.FakeRedis,
-) -> DictionaryRepository:
-    return DictionaryRepository(redis_client)
+async def dictionary_repo(data_dir: Path) -> DictionaryRepository:
+    return DictionaryRepository()
 
 
 @pytest.fixture
@@ -63,20 +64,14 @@ async def game_service(
 @pytest.fixture
 async def client(
     db_session: AsyncSession,
-    redis_client: fakeredis.aioredis.FakeRedis,
+    data_dir: Path,
 ) -> AsyncGenerator[AsyncClient, None]:
     from main import app
 
     async def _override_get_db() -> AsyncGenerator[AsyncSession, None]:
         yield db_session
 
-    async def _override_get_redis() -> AsyncGenerator[
-        fakeredis.aioredis.FakeRedis, None
-    ]:
-        yield redis_client
-
     app.dependency_overrides[get_db] = _override_get_db
-    app.dependency_overrides[get_redis] = _override_get_redis
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:

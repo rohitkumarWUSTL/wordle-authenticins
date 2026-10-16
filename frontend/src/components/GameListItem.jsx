@@ -41,11 +41,6 @@ function GameListItem({ game }) {
             <span className="game-list-item-empty">—</span>
           )}
         </span>
-        {game.status === 'LOST' && game.target_word && (
-          <span className="game-list-item-target">
-            Answer: <strong>{game.target_word}</strong>
-          </span>
-        )}
       </Link>
     </li>
   )

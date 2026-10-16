@@ -56,6 +56,24 @@
   min-height: 50vh;
 }
 
+.new-game-button-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.new-game-button-select {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  bottom: 0;
+  left: 0;
+}
+
 .new-game-button {
   appearance: none;
   -webkit-appearance: none;
@@ -74,7 +92,7 @@
   color: #fff;
 }
 
-.new-game-button-full:hover {
+.new-game-button-full:hover:not(:disabled) {
   background-color: #535bf2;
 }
 
@@ -84,14 +102,20 @@
   padding: 0;
   font-size: 1.4rem;
   line-height: 1;
-  text-align: center;
-  text-align-last: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background-color: #646cff;
   color: #fff;
 }
 
-.new-game-button-compact:hover {
+.new-game-button-compact:hover:not(:disabled) {
   background-color: #535bf2;
+}
+
+.new-game-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .status-filter {

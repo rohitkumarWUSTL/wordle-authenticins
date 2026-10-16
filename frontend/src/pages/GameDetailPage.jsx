@@ -12,6 +12,40 @@ const FLIP_DURATION_MS = 600
 const SHAKE_DURATION_MS = 400
 const TOAST_DURATION_MS = 1500
 
+// The first cross-origin request to the backend can fail transiently while
+// the dev port forward / TLS cert is still warming up. Retry a few times
+// with a short backoff before surfacing the error to the user.
+const FETCH_RETRIES = 3
+const FETCH_RETRY_DELAY_MS = 500
+
+function isNetworkError(err) {
+  // fetch() rejects with a TypeError ("Failed to fetch") for network-level
+  // failures. HTTP errors from our client throw a plain Error with a
+  // message, so we only retry the former.
+  return err instanceof TypeError
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function getGameWithRetry(id, isCancelled) {
+  let lastError
+  for (let attempt = 0; attempt <= FETCH_RETRIES; attempt += 1) {
+    if (isCancelled()) throw new Error('cancelled')
+    try {
+      return await getGame(id)
+    } catch (err) {
+      lastError = err
+      if (!isNetworkError(err) || attempt === FETCH_RETRIES) {
+        throw err
+      }
+      await delay(FETCH_RETRY_DELAY_MS * (attempt + 1))
+    }
+  }
+  throw lastError
+}
+
 function GameDetailPage() {
   const { id } = useParams()
   const location = useLocation()
@@ -44,7 +78,7 @@ function GameDetailPage() {
     setError(null)
     setShowResult(false)
 
-    getGame(id)
+    getGameWithRetry(id, () => cancelled)
       .then((data) => {
         if (cancelled) return
         setGame(data)

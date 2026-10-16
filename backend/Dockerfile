@@ -10,9 +10,9 @@ COPY . .
 
 RUN mkdir -p /app/data
 
-# Generate the word list JSON at build time so startup only has to load it.
-# The runtime fallback in app/dictionary.py still regenerates it if missing
-# (e.g. when running locally without Docker).
+# Generate the word list text files at build time so startup only has to load
+# them. The runtime fallback in app/dictionary.py still regenerates them if
+# missing (e.g. when running locally without Docker).
 RUN python -m scripts.generate_words
 
 EXPOSE 8000

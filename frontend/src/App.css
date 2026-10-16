@@ -61,19 +61,6 @@
   display: inline-flex;
 }
 
-.new-game-button-select {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: 0;
-  border: 0;
-  opacity: 0;
-  pointer-events: none;
-  bottom: 0;
-  left: 0;
-}
-
 .new-game-button {
   appearance: none;
   -webkit-appearance: none;
@@ -92,10 +79,6 @@
   color: #fff;
 }
 
-.new-game-button-full:hover:not(:disabled) {
-  background-color: #535bf2;
-}
-
 .new-game-button-compact {
   width: 2.25rem;
   height: 2.25rem;
@@ -109,13 +92,34 @@
   color: #fff;
 }
 
-.new-game-button-compact:hover:not(:disabled) {
+.new-game-button-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.new-game-button-select:disabled {
+  cursor: not-allowed;
+}
+
+.new-game-button-wrapper:has(.new-game-button-select:disabled) .new-game-button {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.new-game-button-wrapper:hover .new-game-button-full {
   background-color: #535bf2;
 }
 
-.new-game-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.new-game-button-wrapper:hover .new-game-button-compact {
+  background-color: #535bf2;
 }
 
 .status-filter {

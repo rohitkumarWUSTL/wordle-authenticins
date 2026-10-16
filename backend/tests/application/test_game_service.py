@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
-from app import dictionary
 from app.application.game_service import GameService
 from app.models.errors import (
     GameAlreadyFinished,
@@ -14,6 +11,7 @@ from app.models.errors import (
 from app.models.game import GameStatus
 from app.repositories.dictionary_repository import DictionaryRepository
 from app.repositories.game_repository import GameRepository
+from tests._words import seed_answer, seed_empty, seed_guess
 
 
 # --- _generate_feedback ---------------------------------------------------
@@ -68,72 +66,11 @@ def test_resolve_status_in_progress(game_service: GameService) -> None:
 # --- helpers --------------------------------------------------------------
 
 
-def _read_words_file(path: Path) -> tuple[list[str], list[str]]:
-    answers: list[str] = []
-    guesses: list[str] = []
-    section: list[str] | None = None
-    with path.open("r", encoding="utf-8") as f:
-        for raw in f:
-            line = raw.strip()
-            if not line:
-                continue
-            if line == "# answers":
-                section = answers
-                continue
-            if line == "# guesses":
-                section = guesses
-                continue
-            if section is not None:
-                section.append(line)
-    return answers, guesses
-
-
-def _write_words_file(
-    data_dir: Path, length: int, answers: list[str], guesses: list[str]
-) -> None:
-    path = data_dir / f"words_{length}.txt"
-    with path.open("w", encoding="utf-8") as f:
-        f.write("# answers\n")
-        for word in answers:
-            f.write(f"{word}\n")
-        f.write("\n# guesses\n")
-        for word in guesses:
-            f.write(f"{word}\n")
-
-
-def _seed_answer(word: str) -> None:
-    data_dir = dictionary.DATA_DIR
-    length = len(word)
-    path = data_dir / f"words_{length}.txt"
-    answers: list[str] = []
-    guesses: list[str] = []
-    if path.exists():
-        answers, guesses = _read_words_file(path)
-    answers.append(word)
-    _write_words_file(data_dir, length, answers, guesses)
-    dictionary._load_words.cache_clear()
-    dictionary._weighted_answers.cache_clear()
-
-
-def _seed_guess(word: str) -> None:
-    data_dir = dictionary.DATA_DIR
-    length = len(word)
-    path = data_dir / f"words_{length}.txt"
-    answers: list[str] = []
-    guesses: list[str] = []
-    if path.exists():
-        answers, guesses = _read_words_file(path)
-    guesses.append(word)
-    _write_words_file(data_dir, length, answers, guesses)
-    dictionary._load_words.cache_clear()
-    dictionary._weighted_answers.cache_clear()
-
-
 async def _make_game(
     game_service: GameService,
     target: str = "apple",
 ) -> int:
-    _seed_answer(target)
+    seed_answer(target)
     game = await game_service.create_game(len(target))
     return game.id
 
@@ -145,7 +82,7 @@ async def test_create_game(
     game_service: GameService,
     dictionary_repo: DictionaryRepository,
 ) -> None:
-    _seed_answer("apple")
+    seed_answer("apple")
     game = await game_service.create_game(5)
     assert game.word_length == 5
     assert game.target_word == "apple"
@@ -168,7 +105,7 @@ async def test_submit_guess_happy_path(
     dictionary_repo: DictionaryRepository,
 ) -> None:
     game_id = await _make_game(game_service)
-    _seed_guess("eppla")
+    seed_guess("eppla")
 
     guess = await game_service.submit_guess(game_id, "eppla")
     assert guess.word == "eppla"
@@ -187,7 +124,7 @@ async def test_submit_guess_normalizes_case(
     dictionary_repo: DictionaryRepository,
 ) -> None:
     game_id = await _make_game(game_service)
-    _seed_guess("eppla")
+    seed_guess("eppla")
 
     guess = await game_service.submit_guess(game_id, "EPPLA")
     assert guess.word == "eppla"
@@ -212,7 +149,10 @@ async def test_submit_guess_not_in_dictionary(
     dictionary_repo: DictionaryRepository,
 ) -> None:
     game_id = await _make_game(game_service)
-    with pytest.raises(InvalidGuess):
+    # Explicitly seed an empty guess list so the assertion doesn't depend on
+    # what the answer-seeding helper happens to write.
+    seed_empty(5)
+    with pytest.raises(InvalidGuess, match="not a valid word"):
         await game_service.submit_guess(game_id, "zzzzz")
 
 
@@ -221,7 +161,7 @@ async def test_submit_guess_win(
     dictionary_repo: DictionaryRepository,
 ) -> None:
     game_id = await _make_game(game_service)
-    _seed_guess("apple")
+    seed_guess("apple")
 
     await game_service.submit_guess(game_id, "apple")
     game = await game_service.get_game(game_id)
@@ -233,7 +173,7 @@ async def test_submit_guess_after_finished(
     dictionary_repo: DictionaryRepository,
 ) -> None:
     game_id = await _make_game(game_service)
-    _seed_guess("apple")
+    seed_guess("apple")
 
     await game_service.submit_guess(game_id, "apple")
     with pytest.raises(GameAlreadyFinished):
@@ -245,7 +185,7 @@ async def test_submit_guess_loss_after_max_attempts(
     dictionary_repo: DictionaryRepository,
 ) -> None:
     game_id = await _make_game(game_service)
-    _seed_guess("eppla")
+    seed_guess("eppla")
 
     for _ in range(6):
         await game_service.submit_guess(game_id, "eppla")

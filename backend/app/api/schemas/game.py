@@ -21,7 +21,8 @@ class GuessRequest(BaseModel):
     def validate_word_length(cls, v: str) -> str:
         if not (MIN_WORD_LENGTH <= len(v) <= MAX_WORD_LENGTH):
             raise ValueError(
-                f"Invalid word length"
+                f"Word must be between {MIN_WORD_LENGTH} and "
+                f"{MAX_WORD_LENGTH} letters, got {len(v)}"
             )
         return v
 

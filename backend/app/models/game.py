@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import DateTime, Enum, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.constants import MAX_WORD_LENGTH 
+from app.constants import MAX_WORD_LENGTH
 from app.db import Base
 
 if TYPE_CHECKING:

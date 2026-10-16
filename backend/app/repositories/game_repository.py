@@ -64,10 +64,8 @@ class GameRepository:
         game.status = status
         await self._session.commit()
         await self._session.refresh(guess)
+        # The game's `guesses` collection was loaded before the new guess
+        # was inserted, so refresh it to pick up the new row. Without this
+        # the returned game lags one guess behind.
+        await self._session.refresh(game, ["guesses"])
         return guess
-
-    async def mark_lost(self, game: Game) -> Game:
-        game.status = GameStatus.LOST
-        await self._session.commit()
-        await self._session.refresh(game)
-        return game

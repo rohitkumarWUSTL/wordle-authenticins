@@ -4,7 +4,6 @@ import { createGame, listGames } from '../api/games.js'
 import { PAGE_SIZE, STATUS_ALL } from '../constants.js'
 import GameList from '../components/GameList.jsx'
 import NewGameButton from '../components/NewGameButton.jsx'
-import NewGameModal from '../components/NewGameModal.jsx'
 import Pagination from '../components/Pagination.jsx'
 import StatusFilter from '../components/StatusFilter.jsx'
 
@@ -16,7 +15,7 @@ function GamesPage() {
   const [offset, setOffset] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [showNewGame, setShowNewGame] = useState(false)
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -57,9 +56,14 @@ function GamesPage() {
 
   const handleCreate = useCallback(
     async (wordLength) => {
-      const game = await createGame({ wordLength })
-      setShowNewGame(false)
-      navigate(`/games/${game.id}`)
+      setCreating(true)
+      try {
+        const game = await createGame({ wordLength })
+        navigate(`/games/${game.id}`)
+      } catch (err) {
+        setError(err.message)
+        setCreating(false)
+      }
     },
     [navigate],
   )
@@ -75,7 +79,11 @@ function GamesPage() {
           <h1>Wordle</h1>
           <div className="games-header-actions">
             <StatusFilter value={status} onChange={handleStatusChange} />
-            <NewGameButton variant="compact" onClick={() => setShowNewGame(true)} />
+            <NewGameButton
+              variant="compact"
+              onCreate={handleCreate}
+              disabled={creating}
+            />
           </div>
         </header>
       )}
@@ -87,7 +95,8 @@ function GamesPage() {
         <div className="games-empty">
           <NewGameButton
             variant="full"
-            onClick={() => setShowNewGame(true)}
+            onCreate={handleCreate}
+            disabled={creating}
           />
         </div>
       )}
@@ -107,12 +116,6 @@ function GamesPage() {
           />
         </>
       )}
-
-      <NewGameModal
-        open={showNewGame}
-        onClose={() => setShowNewGame(false)}
-        onCreate={handleCreate}
-      />
     </div>
   )
 }

@@ -1,24 +1,33 @@
-"""Generate the word list JSON used to seed Redis.
+"""Generate the word list text files used to seed the dictionary.
 
 Run as: python -m scripts.generate_words
 
-Produces backend/app/data/words.json with the shape:
+Produces one file per word length under backend/app/data/:
 
-    {
-      "5": {"answers": [...], "guesses": [...]},
-      "6": {"answers": [...], "guesses": [...]},
-      "7": {"answers": [...], "guesses": [...]},
-      "8": {"answers": [...], "guesses": [...]}
-    }
+    words_5.txt
+    words_6.txt
+    words_7.txt
+    words_8.txt
 
-Answers are the top ANSWER_COUNT words by zipf frequency for each length.
-Guesses are the top GUESS_COUNT words by zipf frequency for each length
+Each file has the shape:
+
+    # answers
+    crane
+    slate
+    ...
+
+    # guesses
+    aahed
+    aaron
+    ...
+
+Answers are the top ANSWER_COUNT words by zipf frequency for that length.
+Guesses are the top GUESS_COUNT words by zipf frequency for that length
 (a superset of answers).
 """
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 
@@ -30,14 +39,15 @@ ANSWER_COUNT = 1000
 GUESS_COUNT = 25000
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "app" / "data"
-OUTPUT_PATH = DATA_DIR / "words.json"
 
 
-def _collect_words() -> dict[str, dict[str, list[str]]]:
+def _collect_words() -> dict[int, dict[str, list[str]]]:
     # Bucket words by length as we stream the frequency-ordered wordlist.
     # iter_wordlist yields words in descending frequency order, so the first
     # N words we see for a given length are the top N by frequency.
-    buckets: dict[int, list[str]] = {n: [] for n in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH+1)}
+    buckets: dict[int, list[str]] = {
+        n: [] for n in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH + 1)
+    }
     max_needed = max(GUESS_COUNT, ANSWER_COUNT)
 
     for word in iter_wordlist("en"):
@@ -50,29 +60,52 @@ def _collect_words() -> dict[str, dict[str, list[str]]]:
         if len(bucket) >= max_needed:
             continue
         bucket.append(word)
-        if all(len(buckets[n]) >= max_needed for n in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH+1)):
+        if all(
+            len(buckets[n]) >= max_needed
+            for n in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH + 1)
+        ):
             break
 
-    result: dict[str, dict[str, list[str]]] = {}
-    for length in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH+1):
+    result: dict[int, dict[str, list[str]]] = {}
+    for length in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH + 1):
         words = buckets[length]
         # iter_wordlist is already frequency-ordered, so slicing preserves order.
         answers = words[:ANSWER_COUNT]
         guesses = words[:GUESS_COUNT]
-        result[str(length)] = {"answers": answers, "guesses": guesses}
+        result[length] = {"answers": answers, "guesses": guesses}
     return result
 
 
-def generate(output_path: Path = OUTPUT_PATH) -> Path:
-    data = _collect_words()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = output_path.with_suffix(".json.tmp")
+def _words_path(length: int, data_dir: Path = DATA_DIR) -> Path:
+    return data_dir / f"words_{length}.txt"
+
+
+def _write_words_file(
+    path: Path, answers: list[str], guesses: list[str]
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_suffix(".txt.tmp")
     with tmp_path.open("w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    os.replace(tmp_path, output_path)
-    return output_path
+        f.write("# answers\n")
+        for word in answers:
+            f.write(f"{word}\n")
+        f.write("\n# guesses\n")
+        for word in guesses:
+            f.write(f"{word}\n")
+    os.replace(tmp_path, path)
+
+
+def generate(data_dir: Path = DATA_DIR) -> Path:
+    data = _collect_words()
+    for length, entry in data.items():
+        _write_words_file(
+            _words_path(length, data_dir),
+            entry["answers"],
+            entry["guesses"],
+        )
+    return data_dir
 
 
 if __name__ == "__main__":
     path = generate()
-    print(f"Wrote {path}")
+    print(f"Wrote word files to {path}")

@@ -1,34 +1,37 @@
-"""Dictionary helpers backed by Redis.
+"""Dictionary helpers backed by generated text files.
 
-Redis layout:
+Layout:
 
-    dict:answer:{length}   LIST  expanded by zipf weight (LINDEX picks target)
-    dict:guess:{length}    SET   valid guesses (SISMEMBER validates)
+    app/data/words_{length}.txt
 
-The JSON source of truth lives at app/data/words.json and is generated on
-demand by scripts.generate_words if missing.
+Each file has two sections:
+
+    # answers
+    <one word per line>
+
+    # guesses
+    <one word per line>
+
+Answers are frequency-weighted when picked (see ``_weight``); guesses are
+validated by set membership. Files are generated on demand by
+``scripts.generate_words`` if missing.
 """
 
 from __future__ import annotations
 
-import json
 import random
+from functools import lru_cache
 from pathlib import Path
 
-import redis.asyncio as redis
 from wordfreq import zipf_frequency
 
 from app.constants import MAX_WORD_LENGTH, MIN_WORD_LENGTH
 
-DATA_PATH = Path(__file__).resolve().parent / "data" / "words.json"
+DATA_DIR = Path(__file__).resolve().parent / "data"
 
 
-def _answer_key(length: int) -> str:
-    return f"dict:answer:{length}"
-
-
-def _guess_key(length: int) -> str:
-    return f"dict:guess:{length}"
+def _words_path(length: int) -> Path:
+    return DATA_DIR / f"words_{length}.txt"
 
 
 def _weight(word: str) -> int:
@@ -36,57 +39,62 @@ def _weight(word: str) -> int:
     return max(1, round(zipf_frequency(word, "en") - 1))
 
 
-def ensure_words_json(path: Path = DATA_PATH) -> Path:
-    """Generate the words JSON if it doesn't already exist."""
+def ensure_words_txt(length: int) -> Path:
+    """Generate the words file for ``length`` if it doesn't already exist."""
+    path = _words_path(length)
     if path.exists():
         return path
     # Imported lazily so the runtime doesn't need wordfreq unless generating.
     from scripts.generate_words import generate
 
-    return generate(path)
+    generate(DATA_DIR)
+    return path
 
 
-def _load_words(path: Path = DATA_PATH) -> dict[str, dict[str, list[str]]]:
+@lru_cache(maxsize=None)
+def _load_words(length: int) -> tuple[tuple[str, ...], frozenset[str]]:
+    path = ensure_words_txt(length)
+    answers: list[str] = []
+    guesses: list[str] = []
+    section: list[str] | None = None
     with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
+        for raw in f:
+            line = raw.strip()
+            if not line:
+                continue
+            if line == "# answers":
+                section = answers
+                continue
+            if line == "# guesses":
+                section = guesses
+                continue
+            if section is not None:
+                section.append(line)
+    return tuple(answers), frozenset(guesses)
 
 
-async def seed_dictionary(
-    client: redis.Redis, path: Path = DATA_PATH
-) -> None:
-    """Seed Redis from the words JSON, per-partition, only if missing."""
-    data = _load_words(path)
-
-    for length in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH+1):
-        entry = data[str(length)]
-
-        answer_key = _answer_key(length)
-        if not await client.exists(answer_key):
-            expanded: list[str] = []
-            for word in entry["answers"]:
-                expanded.extend([word] * _weight(word))
-            if expanded:
-                # RPUSH in reverse so LINDEX sees a stable order.
-                await client.rpush(answer_key, *reversed(expanded))
-
-        guess_key = _guess_key(length)
-        if not await client.exists(guess_key):
-            guesses = entry["guesses"]
-            if guesses:
-                await client.sadd(guess_key, *guesses)
+@lru_cache(maxsize=None)
+def _weighted_answers(length: int) -> tuple[str, ...]:
+    answers, _ = _load_words(length)
+    expanded: list[str] = []
+    for word in answers:
+        expanded.extend([word] * _weight(word))
+    return tuple(expanded)
 
 
-async def is_valid_guess(client: redis.Redis, word: str, length: int) -> bool:
-    return bool(await client.sismember(_guess_key(length), word.lower()))
+def seed_dictionary() -> None:
+    """Ensure the words files exist for every supported length."""
+    for length in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH + 1):
+        ensure_words_txt(length)
 
 
-async def random_answer(client: redis.Redis, length: int) -> str:
-    key = _answer_key(length)
-    size = await client.llen(key)
-    if size == 0:
+def is_valid_guess(word: str, length: int) -> bool:
+    _, guesses = _load_words(length)
+    return word.lower() in guesses
+
+
+def random_answer(length: int) -> str:
+    pool = _weighted_answers(length)
+    if not pool:
         raise RuntimeError(f"No answers seeded for length {length}")
-    index = random.randint(0, size - 1)
-    word = await client.lindex(key, index)
-    if word is None:
-        raise RuntimeError(f"No answers seeded for length {length}")
-    return word
+    return random.choice(pool)

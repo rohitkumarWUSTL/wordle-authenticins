@@ -1,26 +1,78 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from httpx import AsyncClient
 
+from app import dictionary
 from app.repositories.dictionary_repository import DictionaryRepository
 
 
-async def _seed_answer(
-    dictionary_repo: DictionaryRepository, word: str
-) -> None:
-    await dictionary_repo._client.rpush(f"dict:answer:{len(word)}", word)
+def _read_words_file(path: Path) -> tuple[list[str], list[str]]:
+    answers: list[str] = []
+    guesses: list[str] = []
+    section: list[str] | None = None
+    with path.open("r", encoding="utf-8") as f:
+        for raw in f:
+            line = raw.strip()
+            if not line:
+                continue
+            if line == "# answers":
+                section = answers
+                continue
+            if line == "# guesses":
+                section = guesses
+                continue
+            if section is not None:
+                section.append(line)
+    return answers, guesses
 
 
-async def _seed_guess(
-    dictionary_repo: DictionaryRepository, word: str
+def _write_words_file(
+    data_dir: Path, length: int, answers: list[str], guesses: list[str]
 ) -> None:
-    await dictionary_repo._client.sadd(f"dict:guess:{len(word)}", word)
+    path = data_dir / f"words_{length}.txt"
+    with path.open("w", encoding="utf-8") as f:
+        f.write("# answers\n")
+        for word in answers:
+            f.write(f"{word}\n")
+        f.write("\n# guesses\n")
+        for word in guesses:
+            f.write(f"{word}\n")
+
+
+def _seed_answer(word: str) -> None:
+    data_dir = dictionary.DATA_DIR
+    length = len(word)
+    path = data_dir / f"words_{length}.txt"
+    answers: list[str] = []
+    guesses: list[str] = []
+    if path.exists():
+        answers, guesses = _read_words_file(path)
+    answers.append(word)
+    _write_words_file(data_dir, length, answers, guesses)
+    dictionary._load_words.cache_clear()
+    dictionary._weighted_answers.cache_clear()
+
+
+def _seed_guess(word: str) -> None:
+    data_dir = dictionary.DATA_DIR
+    length = len(word)
+    path = data_dir / f"words_{length}.txt"
+    answers: list[str] = []
+    guesses: list[str] = []
+    if path.exists():
+        answers, guesses = _read_words_file(path)
+    guesses.append(word)
+    _write_words_file(data_dir, length, answers, guesses)
+    dictionary._load_words.cache_clear()
+    dictionary._weighted_answers.cache_clear()
 
 
 async def test_create_game(
     client: AsyncClient, dictionary_repo: DictionaryRepository
 ) -> None:
-    await _seed_answer(dictionary_repo, "apple")
+    _seed_answer("apple")
     response = await client.post("/games", json={"word_length": 5})
     assert response.status_code == 201
     body = response.json()
@@ -37,7 +89,7 @@ async def test_create_game_invalid_length(client: AsyncClient) -> None:
 async def test_list_games(
     client: AsyncClient, dictionary_repo: DictionaryRepository
 ) -> None:
-    await _seed_answer(dictionary_repo, "apple")
+    _seed_answer("apple")
     await client.post("/games", json={"word_length": 5})
     await client.post("/games", json={"word_length": 5})
 
@@ -53,8 +105,8 @@ async def test_list_games(
 async def test_list_games_filter_by_status(
     client: AsyncClient, dictionary_repo: DictionaryRepository
 ) -> None:
-    await _seed_answer(dictionary_repo, "apple")
-    await _seed_guess(dictionary_repo, "apple")
+    _seed_answer("apple")
+    _seed_guess("apple")
 
     in_progress = await client.post("/games", json={"word_length": 5})
     finished = await client.post("/games", json={"word_length": 5})
@@ -92,7 +144,7 @@ async def test_list_games_invalid_status(client: AsyncClient) -> None:
 async def test_get_game(
     client: AsyncClient, dictionary_repo: DictionaryRepository
 ) -> None:
-    await _seed_answer(dictionary_repo, "apple")
+    _seed_answer("apple")
     created = await client.post("/games", json={"word_length": 5})
     game_id = created.json()["id"]
 
@@ -109,8 +161,8 @@ async def test_get_game_not_found(client: AsyncClient) -> None:
 async def test_submit_guess(
     client: AsyncClient, dictionary_repo: DictionaryRepository
 ) -> None:
-    await _seed_answer(dictionary_repo, "apple")
-    await _seed_guess(dictionary_repo, "eppla")
+    _seed_answer("apple")
+    _seed_guess("eppla")
     created = await client.post("/games", json={"word_length": 5})
     game_id = created.json()["id"]
 
@@ -138,7 +190,7 @@ async def test_submit_guess_game_not_found(client: AsyncClient) -> None:
 async def test_submit_guess_invalid_word(
     client: AsyncClient, dictionary_repo: DictionaryRepository
 ) -> None:
-    await _seed_answer(dictionary_repo, "apple")
+    _seed_answer("apple")
     created = await client.post("/games", json={"word_length": 5})
     game_id = created.json()["id"]
 
@@ -151,8 +203,8 @@ async def test_submit_guess_invalid_word(
 async def test_submit_guess_after_finished(
     client: AsyncClient, dictionary_repo: DictionaryRepository
 ) -> None:
-    await _seed_answer(dictionary_repo, "apple")
-    await _seed_guess(dictionary_repo, "apple")
+    _seed_answer("apple")
+    _seed_guess("apple")
     created = await client.post("/games", json={"word_length": 5})
     game_id = created.json()["id"]
 

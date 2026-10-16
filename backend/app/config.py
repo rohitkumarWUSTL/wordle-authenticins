@@ -7,7 +7,6 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     DATABASE_URL: str = "sqlite+aiosqlite:////app/data/wordle.db"
-    REDIS_URL: str = "redis://redis:6379/0"
 
 
 @lru_cache

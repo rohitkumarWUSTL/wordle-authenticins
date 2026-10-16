@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
+from app import dictionary
 from app.application.game_service import GameService
 from app.models.errors import (
     GameAlreadyFinished,
@@ -65,24 +68,72 @@ def test_resolve_status_in_progress(game_service: GameService) -> None:
 # --- helpers --------------------------------------------------------------
 
 
-async def _seed_answer(
-    dictionary_repo: DictionaryRepository, word: str
-) -> None:
-    await dictionary_repo._client.rpush(f"dict:answer:{len(word)}", word)
+def _read_words_file(path: Path) -> tuple[list[str], list[str]]:
+    answers: list[str] = []
+    guesses: list[str] = []
+    section: list[str] | None = None
+    with path.open("r", encoding="utf-8") as f:
+        for raw in f:
+            line = raw.strip()
+            if not line:
+                continue
+            if line == "# answers":
+                section = answers
+                continue
+            if line == "# guesses":
+                section = guesses
+                continue
+            if section is not None:
+                section.append(line)
+    return answers, guesses
 
 
-async def _seed_guess(
-    dictionary_repo: DictionaryRepository, word: str
+def _write_words_file(
+    data_dir: Path, length: int, answers: list[str], guesses: list[str]
 ) -> None:
-    await dictionary_repo._client.sadd(f"dict:guess:{len(word)}", word)
+    path = data_dir / f"words_{length}.txt"
+    with path.open("w", encoding="utf-8") as f:
+        f.write("# answers\n")
+        for word in answers:
+            f.write(f"{word}\n")
+        f.write("\n# guesses\n")
+        for word in guesses:
+            f.write(f"{word}\n")
+
+
+def _seed_answer(word: str) -> None:
+    data_dir = dictionary.DATA_DIR
+    length = len(word)
+    path = data_dir / f"words_{length}.txt"
+    answers: list[str] = []
+    guesses: list[str] = []
+    if path.exists():
+        answers, guesses = _read_words_file(path)
+    answers.append(word)
+    _write_words_file(data_dir, length, answers, guesses)
+    dictionary._load_words.cache_clear()
+    dictionary._weighted_answers.cache_clear()
+
+
+def _seed_guess(word: str) -> None:
+    data_dir = dictionary.DATA_DIR
+    length = len(word)
+    path = data_dir / f"words_{length}.txt"
+    answers: list[str] = []
+    guesses: list[str] = []
+    if path.exists():
+        answers, guesses = _read_words_file(path)
+    guesses.append(word)
+    _write_words_file(data_dir, length, answers, guesses)
+    dictionary._load_words.cache_clear()
+    dictionary._weighted_answers.cache_clear()
 
 
 async def _make_game(
     game_service: GameService,
-    dictionary_repo: DictionaryRepository,
     target: str = "apple",
 ) -> int:
-    await _seed_answer(dictionary_repo, target)
+    _seed_answer(target)
     game = await game_service.create_game(len(target))
     return game.id
 
@@ -94,7 +145,7 @@ async def test_create_game(
     game_service: GameService,
     dictionary_repo: DictionaryRepository,
 ) -> None:
-    await _seed_answer(dictionary_repo, "apple")
+    _seed_answer("apple")
     game = await game_service.create_game(5)
     assert game.word_length == 5
     assert game.target_word == "apple"
@@ -116,8 +167,8 @@ async def test_submit_guess_happy_path(
     game_service: GameService,
     dictionary_repo: DictionaryRepository,
 ) -> None:
-    game_id = await _make_game(game_service, dictionary_repo)
-    await _seed_guess(dictionary_repo, "eppla")
+    game_id = await _make_game(game_service)
+    _seed_guess("eppla")
 
     guess = await game_service.submit_guess(game_id, "eppla")
     assert guess.word == "eppla"
@@ -135,8 +186,8 @@ async def test_submit_guess_normalizes_case(
     game_service: GameService,
     dictionary_repo: DictionaryRepository,
 ) -> None:
-    game_id = await _make_game(game_service, dictionary_repo)
-    await _seed_guess(dictionary_repo, "eppla")
+    game_id = await _make_game(game_service)
+    _seed_guess("eppla")
 
     guess = await game_service.submit_guess(game_id, "EPPLA")
     assert guess.word == "eppla"
@@ -151,7 +202,7 @@ async def test_submit_guess_wrong_length(
     game_service: GameService,
     dictionary_repo: DictionaryRepository,
 ) -> None:
-    game_id = await _make_game(game_service, dictionary_repo)
+    game_id = await _make_game(game_service)
     with pytest.raises(InvalidGuess):
         await game_service.submit_guess(game_id, "app")
 
@@ -160,7 +211,7 @@ async def test_submit_guess_not_in_dictionary(
     game_service: GameService,
     dictionary_repo: DictionaryRepository,
 ) -> None:
-    game_id = await _make_game(game_service, dictionary_repo)
+    game_id = await _make_game(game_service)
     with pytest.raises(InvalidGuess):
         await game_service.submit_guess(game_id, "zzzzz")
 
@@ -169,8 +220,8 @@ async def test_submit_guess_win(
     game_service: GameService,
     dictionary_repo: DictionaryRepository,
 ) -> None:
-    game_id = await _make_game(game_service, dictionary_repo)
-    await _seed_guess(dictionary_repo, "apple")
+    game_id = await _make_game(game_service)
+    _seed_guess("apple")
 
     await game_service.submit_guess(game_id, "apple")
     game = await game_service.get_game(game_id)
@@ -181,8 +232,8 @@ async def test_submit_guess_after_finished(
     game_service: GameService,
     dictionary_repo: DictionaryRepository,
 ) -> None:
-    game_id = await _make_game(game_service, dictionary_repo)
-    await _seed_guess(dictionary_repo, "apple")
+    game_id = await _make_game(game_service)
+    _seed_guess("apple")
 
     await game_service.submit_guess(game_id, "apple")
     with pytest.raises(GameAlreadyFinished):
@@ -193,8 +244,8 @@ async def test_submit_guess_loss_after_max_attempts(
     game_service: GameService,
     dictionary_repo: DictionaryRepository,
 ) -> None:
-    game_id = await _make_game(game_service, dictionary_repo)
-    await _seed_guess(dictionary_repo, "eppla")
+    game_id = await _make_game(game_service)
+    _seed_guess("eppla")
 
     for _ in range(6):
         await game_service.submit_guess(game_id, "eppla")

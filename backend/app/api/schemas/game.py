@@ -44,6 +44,9 @@ class GameResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     guesses: list[GuessResponse] = Field(default=list)
+    # Only populated once the game is finished, so the answer isn't leaked
+    # to the client while the game is still in progress.
+    target_word: str | None = None
 
 
 class GameListResponse(BaseModel):

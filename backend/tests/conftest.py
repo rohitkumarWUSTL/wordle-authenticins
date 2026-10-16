@@ -37,10 +37,8 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 def data_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr(dictionary, "DATA_DIR", tmp_path)
     dictionary._load_words.cache_clear()
-    dictionary._weighted_answers.cache_clear()
     yield tmp_path
     dictionary._load_words.cache_clear()
-    dictionary._weighted_answers.cache_clear()
 
 
 @pytest.fixture

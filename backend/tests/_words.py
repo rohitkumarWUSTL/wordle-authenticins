@@ -2,7 +2,7 @@
 
 The dictionary reads from ``dictionary.DATA_DIR`` (monkeypatched to a
 ``tmp_path`` by the ``data_dir`` fixture in ``conftest.py``). These helpers
-write into that directory and clear the loader caches so the next read picks
+write into that directory and clear the loader cache so the next read picks
 up the new contents.
 """
 
@@ -48,7 +48,6 @@ def write_words_file(
 
 def _clear_caches() -> None:
     dictionary._load_words.cache_clear()
-    dictionary._weighted_answers.cache_clear()
 
 
 def seed_answer(word: str) -> None:

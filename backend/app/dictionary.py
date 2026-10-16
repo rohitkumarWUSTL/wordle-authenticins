@@ -12,9 +12,9 @@ Each file has two sections:
     # guesses
     <one word per line>
 
-Answers are frequency-weighted when picked (see ``_weight``); guesses are
-validated by set membership. Files are generated on demand by
-``scripts.generate_words`` if missing.
+Answers are picked uniformly at random from the answer pool (matching
+Wordle's behavior); guesses are validated by set membership. Files are
+generated on demand by ``scripts.generate_words`` if missing.
 """
 
 from __future__ import annotations
@@ -23,8 +23,6 @@ import random
 from functools import lru_cache
 from pathlib import Path
 
-from wordfreq import zipf_frequency
-
 from app.constants import MAX_WORD_LENGTH, MIN_WORD_LENGTH
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
@@ -32,11 +30,6 @@ DATA_DIR = Path(__file__).resolve().parent / "data"
 
 def _words_path(length: int) -> Path:
     return DATA_DIR / f"words_{length}.txt"
-
-
-def _weight(word: str) -> int:
-    # Linear in zipf: a zipf-7 word appears 6x, a zipf-2 word appears 1x.
-    return max(1, round(zipf_frequency(word, "en") - 1))
 
 
 def ensure_words_txt(length: int) -> Path:
@@ -73,26 +66,15 @@ def _load_words(length: int) -> tuple[tuple[str, ...], frozenset[str]]:
     return tuple(answers), frozenset(guesses)
 
 
-@lru_cache(maxsize=None)
-def _weighted_answers(length: int) -> tuple[str, ...]:
-    answers, _ = _load_words(length)
-    expanded: list[str] = []
-    for word in answers:
-        expanded.extend([word] * _weight(word))
-    return tuple(expanded)
-
-
 def seed_dictionary() -> None:
     """Ensure the words files exist and warm the in-memory caches.
 
     Called at startup so the first request for a given word length doesn't
-    pay the cost of generating the file, parsing it, and expanding the
-    frequency-weighted answer pool.
+    pay the cost of generating the file and parsing it.
     """
     for length in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH + 1):
         ensure_words_txt(length)
         _load_words(length)
-        _weighted_answers(length)
 
 
 def is_valid_guess(word: str, length: int) -> bool:
@@ -101,7 +83,7 @@ def is_valid_guess(word: str, length: int) -> bool:
 
 
 def random_answer(length: int) -> str:
-    pool = _weighted_answers(length)
-    if not pool:
+    answers, _ = _load_words(length)
+    if not answers:
         raise RuntimeError(f"No answers seeded for length {length}")
-    return random.choice(pool)
+    return random.choice(answers)

@@ -21,9 +21,11 @@ Each file has the shape:
     aaron
     ...
 
-Answers are the top ANSWER_COUNT words by zipf frequency for that length.
+Answers are the top ANSWER_COUNT words by zipf frequency for that length
+that pass the answer filter (frequency floor, no proper nouns, no plurals).
 Guesses are the top GUESS_COUNT words by zipf frequency for that length
-(a superset of answers).
+that pass the guess filter (lower frequency floor, no proper nouns).
+Answers are always a subset of guesses.
 """
 
 from __future__ import annotations
@@ -31,18 +33,43 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from wordfreq import iter_wordlist
+from wordfreq import iter_wordlist, zipf_frequency
 
 from app.constants import MAX_WORD_LENGTH, MIN_WORD_LENGTH
 
-ANSWER_COUNT = 1000
-GUESS_COUNT = 25000
+# Frequency floors. Answers are held to a higher bar than guesses so the
+# answer pool feels like Wordle's curated list, while guesses stay permissive
+# enough that players rarely hit "not a valid word".
+MIN_ZIPF_ANSWERS = 3.5
+MIN_ZIPF_GUESSES = 2.5
+
+ANSWER_COUNT = 2500
+GUESS_COUNT = 15000
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "app" / "data"
 
 
+def _is_likely_proper_noun(word: str) -> bool:
+    """Heuristic: a word is likely a proper noun if its capitalized form is
+    significantly more frequent than its lowercase form (e.g. "jeremy")."""
+    lower = zipf_frequency(word, "en")
+    upper = zipf_frequency(word.capitalize(), "en")
+    return upper > lower + 1.0
+
+
+def _is_plural(word: str, all_words: set[str]) -> bool:
+    """Heuristic: a word is likely a plural if it ends in "s" and its
+    singular form is also a known word. Excludes common non-plural "s"
+    endings (glass, cactus, basis)."""
+    if not word.endswith("s"):
+        return False
+    if word.endswith(("ss", "us", "is")):
+        return False
+    return word[:-1] in all_words
+
+
 def _collect_words() -> dict[int, dict[str, list[str]]]:
-    # Bucket words by length as we stream the frequency-ordered wordlist.
+    # First pass: collect all candidates that pass the guess filter.
     # iter_wordlist yields words in descending frequency order, so the first
     # N words we see for a given length are the top N by frequency.
     buckets: dict[int, list[str]] = {
@@ -59,6 +86,10 @@ def _collect_words() -> dict[int, dict[str, list[str]]]:
         bucket = buckets[length]
         if len(bucket) >= max_needed:
             continue
+        if zipf_frequency(word, "en") < MIN_ZIPF_GUESSES:
+            continue
+        if _is_likely_proper_noun(word):
+            continue
         bucket.append(word)
         if all(
             len(buckets[n]) >= max_needed
@@ -66,11 +97,17 @@ def _collect_words() -> dict[int, dict[str, list[str]]]:
         ):
             break
 
+    # Second pass: derive answers from the guess pool.
     result: dict[int, dict[str, list[str]]] = {}
     for length in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH + 1):
         words = buckets[length]
-        # iter_wordlist is already frequency-ordered, so slicing preserves order.
-        answers = words[:ANSWER_COUNT]
+        all_words = set(words)
+        answers = [
+            w
+            for w in words
+            if zipf_frequency(w, "en") >= MIN_ZIPF_ANSWERS
+            and not _is_plural(w, all_words)
+        ][:ANSWER_COUNT]
         guesses = words[:GUESS_COUNT]
         result[length] = {"answers": answers, "guesses": guesses}
     return result

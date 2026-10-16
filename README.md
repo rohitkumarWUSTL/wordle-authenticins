@@ -1,5 +1,16 @@
 # Wordle Full Stack Assessment
 
+## Write-up
+
+Most of the codebase is self-explanatory. On the backend, I used a three-tier architecture pattern to separate the API definition, application logic, and data interfacing; while I leaned more on AI tools for generating the frontend, I made sure to document the file structure, conventions, and API in the frontend README - both for my own understanding and so a fresh agentic session could more easily maneuver the codebase and implement changes. However, I still wanted to include a brief writeup to talk about the dictionary:
+
+- Figuring out a source of truth to generate answers and validate guesses against was an interesting challenge. Similar to the original Wordle game, I wanted answers to generally
+be more common words, but couldn't just use the "official" list of words Wordle uses, since I need to support 6, 7, and 8 letter games. I generate the dictionary (both valid answers and valid guesses, which are two separate lists) .txt files in the generate_words.py script by pulling from TWL06.txt (official Scrabble tournament word list) to exclude proper nouns and abbreviations; I sort, filter, and (for randomly selecting answers) weight words by their frequency per the `wordfreq` library. Answers are the top 2500 words by wordfreq zipf frequency above a 3.5 floor and guesses are the top 15000 above a 2.0 floor; this allows for more common words to be selected as answers while still being permissive in what guesses are allowed.
+- Sourcing from TWL06 and sorting/filtering on frequency can lead to odd edge cases - a word that is rare as a non-proper noun but common as a proper noun (e.g. "henry", which is a unit of electrical inductance but also a very common name) - can be allowed as an answer, even though it goes against the intention of my algorithm. This was a tradeoff I was willing to accept; if I absolutely needed to eliminate it, I would find a case-sensitive word frequency source of truth or, short of that, train some sort of classifier that passed an acceptable threshold. 
+- I used a rough heuristic (-s, -es, -ies, -ves) to eliminate plural words, which I think is consistent enough with how official Wordle selects words as well, since irregular plural words like "geese", "cacti", and "women" appear in Wordle lists (https://gist.github.com/cfreshman/a03ef2cba789d8cf00c08f767e0fad7b).   
+- I keep answers and valid guesses in two separate sections within each text file (the text files being partitioned by word length); I wanted to keep them decoupled/redundant so that a change in the answer pool wouldn't affect the guess pool and vice versa.
+- The dictionary .txt files are generated through the generate_words.py script by Docker when starting up the service, and also regenerated on-demand during runtime as needed. On runtime, they are read into memory for answer generation and guess lookups. It likely would've been more performant and technically sound to seed a Redis cache, but I opted for in-memory loading for simplicity's sake, given the dictionary was small enough to do so without significant penalty.
+
 ## Background
 
 Wordle is a simple game in which you have to guess a five-letter word. You get six guesses, learning a little more information with each guess, and eventually narrow your guesses down to find the answer.
@@ -111,10 +122,6 @@ docker compose down
 ```
 
 API documentation is automatically available at `http://localhost:8000/docs`.
-
-**Key files to modify:**
-- `backend/main.py` - Add your API endpoints here
-- `backend/requirements.txt` - Add any additional Python dependencies
 
 ### Backend Services
 

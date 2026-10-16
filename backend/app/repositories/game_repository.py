@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.game import Game, GameStatus
-from app.models.guess import Guess
+from app.models.guess import FeedbackItem, Guess
 
 
 class GameRepository:
@@ -51,7 +51,7 @@ class GameRepository:
         game: Game,
         word: str,
         guess_number: int,
-        feedback: list,
+        feedback: list[FeedbackItem],
         status: GameStatus,
     ) -> Guess:
         guess = Guess(

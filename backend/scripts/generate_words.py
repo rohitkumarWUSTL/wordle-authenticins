@@ -12,13 +12,13 @@ Produces one file per word length under backend/app/data/:
 Each file has the shape:
 
     # answers
-    crane
-    slate
+    about
+    their
     ...
 
     # guesses
-    aahed
-    aaron
+    about
+    their
     ...
 
 The source of truth is a TWL06 Scrabble word list (see SOURCE_PATH). TWL06

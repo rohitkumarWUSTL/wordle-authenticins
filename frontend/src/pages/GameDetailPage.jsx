@@ -16,6 +16,10 @@ const TOAST_DURATION_MS = 1500
 function GameDetailPage() {
   const { id } = useParams()
   const [game, setGame] = useState(null)
+  // A snapshot of `game` used for the keyboard colors. It lags behind
+  // `game` while the reveal animation is running, so the keyboard doesn't
+  // recolor until the flip (and bounce, on a win) have finished.
+  const [revealedGame, setRevealedGame] = useState(null)
   const [currentGuess, setCurrentGuess] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -41,6 +45,7 @@ function GameDetailPage() {
       .then((data) => {
         if (cancelled) return
         setGame(data)
+        setRevealedGame(data)
         // On a fresh load there is no reveal animation to wait for, so
         // show the result immediately if the game is already finished.
         if (data.status !== 'IN_PROGRESS') {
@@ -75,9 +80,9 @@ function GameDetailPage() {
   const maxGuesses = game ? game.word_length + 1 : 0
 
   const letterStates = useMemo(() => {
-    if (!game) return {}
+    if (!revealedGame) return {}
     const states = {}
-    for (const guess of game.guesses) {
+    for (const guess of revealedGame.guesses) {
       for (const item of guess.feedback) {
         const letter = item.letter
         const current = states[letter]
@@ -87,7 +92,7 @@ function GameDetailPage() {
       }
     }
     return states
-  }, [game])
+  }, [revealedGame])
 
   const showToast = useCallback((message) => {
     setToast(message)
@@ -129,6 +134,7 @@ function GameDetailPage() {
       await submitGuess(id, currentGuess)
       const updated = await getGame(id)
       const newRowIndex = updated.guesses.length - 1
+      const isWin = updated.status === 'WON'
       // Set the animating row and the new game state in the same batch so
       // the cells render once, with the flip animation already applied.
       setAnimatingRow(newRowIndex)
@@ -139,17 +145,20 @@ function GameDetailPage() {
         () => setAnimatingRow(-1),
         wordLength * FLIP_STAGGER_MS + FLIP_DURATION_MS,
       )
-      // Delay the result banner until after the flip reveal and the bounce
-      // animation on the winning row have both finished.
-      if (updated.status !== 'IN_PROGRESS') {
-        if (resultTimer.current) clearTimeout(resultTimer.current)
-        resultTimer.current = setTimeout(
-          () => setShowResult(true),
-          wordLength * FLIP_STAGGER_MS +
-            FLIP_DURATION_MS +
-            BOUNCE_DURATION_MS,
-        )
-      }
+      // Delay the keyboard recolor (and the result banner, if the game
+      // ended) until the flip reveal has finished. On a win, also wait for
+      // the bounce animation on the winning row.
+      const revealDelay =
+        wordLength * FLIP_STAGGER_MS +
+        FLIP_DURATION_MS +
+        (isWin ? BOUNCE_DURATION_MS : 0)
+      if (resultTimer.current) clearTimeout(resultTimer.current)
+      resultTimer.current = setTimeout(() => {
+        setRevealedGame(updated)
+        if (updated.status !== 'IN_PROGRESS') {
+          setShowResult(true)
+        }
+      }, revealDelay)
     } catch (err) {
       showToast(err.message)
       triggerShake()
@@ -172,6 +181,7 @@ function GameDetailPage() {
     try {
       const updated = await giveUp(id)
       setGame(updated)
+      setRevealedGame(updated)
       setCurrentGuess('')
       setShowResult(true)
     } catch (err) {

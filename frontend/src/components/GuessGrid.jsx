@@ -17,7 +17,6 @@ function GuessGrid({
   currentGuess,
   animatingRow = -1,
   shake = false,
-  won = false,
 }) {
   const rows = []
 
@@ -25,7 +24,6 @@ function GuessGrid({
     const guess = guesses[rowIndex]
     const isActiveRow = !guess && rowIndex === guesses.length
     const isAnimating = rowIndex === animatingRow
-    const isWinningRow = won && rowIndex === guesses.length - 1
     const rowClasses = ['guess-row']
     if (shake && isActiveRow) rowClasses.push('guess-row-shake')
 
@@ -54,14 +52,10 @@ function GuessGrid({
       const cellClasses = ['guess-cell']
       if (colorClass) cellClasses.push(colorClass)
       if (isAnimating) cellClasses.push('guess-cell-flip')
-      if (isWinningRow) cellClasses.push('guess-cell-bounce')
 
       const style = {}
       if (isAnimating && cellColor) {
         style['--cell-color'] = cellColor
-        style['--col'] = colIndex
-      }
-      if (isWinningRow) {
         style['--col'] = colIndex
       }
 

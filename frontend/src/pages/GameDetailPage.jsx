@@ -9,7 +9,6 @@ const COLOR_RANK = { GREEN: 3, YELLOW: 2, GRAY: 1 }
 
 const FLIP_STAGGER_MS = 100
 const FLIP_DURATION_MS = 600
-const BOUNCE_DURATION_MS = 800
 const SHAKE_DURATION_MS = 400
 const TOAST_DURATION_MS = 1500
 
@@ -22,7 +21,7 @@ function GameDetailPage() {
   const [game, setGame] = useState(null)
   // A snapshot of `game` used for the keyboard colors. It lags behind
   // `game` while the reveal animation is running, so the keyboard doesn't
-  // recolor until the flip (and bounce, on a win) have finished.
+  // recolor until the flip has finished.
   const [revealedGame, setRevealedGame] = useState(null)
   const [currentGuess, setCurrentGuess] = useState('')
   const [loading, setLoading] = useState(true)
@@ -138,24 +137,16 @@ function GameDetailPage() {
       await submitGuess(id, currentGuess)
       const updated = await getGame(id)
       const newRowIndex = updated.guesses.length - 1
-      const isWin = updated.status === 'WON'
       // Set the animating row and the new game state in the same batch so
       // the cells render once, with the flip animation already applied.
       setAnimatingRow(newRowIndex)
       setGame(updated)
       setCurrentGuess('')
+      const revealDelay = wordLength * FLIP_STAGGER_MS + FLIP_DURATION_MS
       if (animTimer.current) clearTimeout(animTimer.current)
-      animTimer.current = setTimeout(
-        () => setAnimatingRow(-1),
-        wordLength * FLIP_STAGGER_MS + FLIP_DURATION_MS,
-      )
+      animTimer.current = setTimeout(() => setAnimatingRow(-1), revealDelay)
       // Delay the keyboard recolor (and the result banner, if the game
-      // ended) until the flip reveal has finished. On a win, also wait for
-      // the bounce animation on the winning row.
-      const revealDelay =
-        wordLength * FLIP_STAGGER_MS +
-        FLIP_DURATION_MS +
-        (isWin ? BOUNCE_DURATION_MS : 0)
+      // ended) until the flip reveal has finished.
       if (resultTimer.current) clearTimeout(resultTimer.current)
       resultTimer.current = setTimeout(() => {
         setRevealedGame(updated)
@@ -240,9 +231,9 @@ function GameDetailPage() {
     return null
   }
 
-  // The banner keeps showing "Guess x of y" until the reveal + bounce
-  // animations finish, then switches to the result text and color. This
-  // avoids both a layout shift and giving the result away early.
+  // The banner keeps showing "Guess x of y" until the reveal animation
+  // finishes, then switches to the result text and color. This avoids both
+  // a layout shift and giving the result away early.
   const showResultBanner = isFinished && showResult
   const bannerStatus = showResultBanner ? game.status.toLowerCase() : 'in_progress'
 
@@ -290,7 +281,6 @@ function GameDetailPage() {
           currentGuess={currentGuess}
           animatingRow={animatingRow}
           shake={shake}
-          won={game.status === 'WON'}
         />
         {toast && <div className="game-toast">{toast}</div>}
       </div>

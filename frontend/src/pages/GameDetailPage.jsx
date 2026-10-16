@@ -134,8 +134,9 @@ function GameDetailPage() {
 
     setSubmitting(true)
     try {
-      await submitGuess(id, currentGuess)
-      const updated = await getGame(id)
+      // The guess endpoint returns the full updated game, so there's no
+      // need for a follow-up GET.
+      const updated = await submitGuess(id, currentGuess)
       const newRowIndex = updated.guesses.length - 1
       // Set the animating row and the new game state in the same batch so
       // the cells render once, with the flip animation already applied.

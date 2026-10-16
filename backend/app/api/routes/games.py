@@ -7,7 +7,6 @@ from app.api.schemas.game import (
     GameListResponse,
     GameResponse,
     GuessRequest,
-    GuessResponse,
 )
 from app.application.game_service import GameService
 from app.dependencies import get_game_service
@@ -58,13 +57,14 @@ async def get_game(
     return _to_response(game)
 
 
-@router.post("/{game_id}/guesses", response_model=GuessResponse)
+@router.post("/{game_id}/guesses", response_model=GameResponse)
 async def submit_guess(
     game_id: int,
     payload: GuessRequest,
     service: GameService = Depends(get_game_service),
-) -> GuessResponse:
-    return await service.submit_guess(game_id, payload.word)
+) -> GameResponse:
+    game = await service.submit_guess(game_id, payload.word)
+    return _to_response(game)
 
 
 @router.post("/{game_id}/give-up", response_model=GameResponse)

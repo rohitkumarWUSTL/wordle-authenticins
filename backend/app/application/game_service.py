@@ -40,7 +40,7 @@ class GameService:
     ) -> tuple[list[Game], int]:
         return await self._games.list(limit, offset, status)
 
-    async def submit_guess(self, game_id: int, word: str) -> Guess:
+    async def submit_guess(self, game_id: int, word: str) -> Game:
         game = await self._games.get(game_id)
         if game is None:
             raise GameNotFound(f"Game {game_id} not found")
@@ -52,9 +52,8 @@ class GameService:
         guess_number = len(game.guesses) + 1
         status = self._resolve_status(feedback, guess_number, game.word_length)
 
-        return await self._games.add_guess(
-            game, word, guess_number, feedback, status
-        )
+        await self._games.add_guess(game, word, guess_number, feedback, status)
+        return game
 
     async def give_up(self, game_id: int) -> Game:
         game = await self._games.get(game_id)

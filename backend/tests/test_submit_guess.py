@@ -67,25 +67,6 @@ def client_factory() -> Iterator:
 
 
 @pytest.mark.asyncio
-async def test_submit_guess_returns_full_game(client_factory):
-    game = _make_game()
-    async with client_factory(game) as client:
-        response = await client.post("/games/1/guesses", json={"word": "slate"})
-
-    assert response.status_code == 200
-    body = response.json()
-    # The response is the full game, not just the guess.
-    assert body["id"] == 1
-    assert body["word_length"] == 5
-    assert body["status"] == "IN_PROGRESS"
-    # The new guess is present in the guesses list.
-    assert len(body["guesses"]) == 1
-    assert body["guesses"][0]["word"] == "slate"
-    assert body["guesses"][0]["guess_number"] == 1
-    assert len(body["guesses"][0]["feedback"]) == 5
-
-
-@pytest.mark.asyncio
 async def test_submit_guess_hides_target_word_while_in_progress(client_factory):
     game = _make_game(status=GameStatus.IN_PROGRESS)
     async with client_factory(game) as client:

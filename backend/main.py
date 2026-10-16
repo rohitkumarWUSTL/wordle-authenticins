@@ -57,6 +57,19 @@ async def _invalid_guess_handler(request: Request, exc: InvalidGuess) -> JSONRes
     return JSONResponse(status_code=422, content={"detail": str(exc)})
 
 
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(
+    request: Request, exc: Exception
+) -> JSONResponse:
+    # Catch-all so unhandled errors return a JSON 500 *through* the
+    # exception-handler path, which sits inside CORSMiddleware. Without
+    # this, Starlette's default 500 is produced by ServerErrorMiddleware
+    # (outside CORS), so the browser blocks it and fetch() reports the
+    # opaque "Failed to fetch" instead of the real error.
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
+
 app.include_router(games.router, prefix="/games", tags=["games"])
 
 

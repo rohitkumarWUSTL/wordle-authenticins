@@ -52,16 +52,25 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "app" / "data"
 SOURCE_PATH = DATA_DIR / "twl06.txt"
 
 
-def _load_source_words(path: Path = SOURCE_PATH) -> set[str]:
-    """Load the TWL06 word list, lowercased, keeping only alphabetic words
-    within the supported length range."""
+def _load_source_words(
+    path: Path = SOURCE_PATH, *, filter_by_length: bool = True
+) -> set[str]:
+    """Load the TWL06 word list, lowercased, keeping only alphabetic words.
+
+    When ``filter_by_length`` is true (the default), words outside the
+    supported length range are dropped. The plural check needs the
+    unfiltered list so it can see short singulars like 'frog' that aren't
+    valid answers themselves.
+    """
     words: set[str] = set()
     with path.open("r", encoding="utf-8") as f:
         for line in f:
             word = line.strip().lower()
             if not word.isalpha():
                 continue
-            if not (MIN_WORD_LENGTH <= len(word) <= MAX_WORD_LENGTH):
+            if filter_by_length and not (
+                MIN_WORD_LENGTH <= len(word) <= MAX_WORD_LENGTH
+            ):
                 continue
             words.add(word)
     return words
@@ -75,6 +84,10 @@ def _is_plural(word: str, source: set[str]) -> bool:
     answers) while still allowing them as guesses. Irregular plurals
     (``mice``, ``geese``) are not detected; they are rare at the supported
     word lengths and mostly fall below the answer frequency floor.
+
+    ``source`` should be the *unfiltered* word list, so that plurals whose
+    singular is shorter than the minimum word length (``frogs`` -> ``frog``)
+    are still detected.
     """
     if word.endswith("ies") and word[:-3] + "y" in source:
         return True
@@ -89,7 +102,9 @@ def _is_plural(word: str, source: set[str]) -> bool:
     return False
 
 
-def _collect_words(source: set[str]) -> dict[int, dict[str, list[str]]]:
+def _collect_words(
+    source: set[str], all_words: set[str]
+) -> dict[int, dict[str, list[str]]]:
     # Bucket the source words by length, then sort each bucket by descending
     # zipf frequency so the most common words come first.
     buckets: dict[int, list[str]] = {
@@ -109,7 +124,7 @@ def _collect_words(source: set[str]) -> dict[int, dict[str, list[str]]]:
             w
             for w in words
             if zipf_frequency(w, "en") >= MIN_ZIPF_ANSWERS
-            and not _is_plural(w, source)
+            and not _is_plural(w, all_words)
         ][:ANSWER_COUNT]
         guesses = [
             w
@@ -140,8 +155,15 @@ def _write_words_file(
 
 
 def generate(data_dir: Path = DATA_DIR) -> Path:
-    source = _load_source_words(data_dir / "twl06.txt")
-    data = _collect_words(source)
+    all_words = _load_source_words(
+        data_dir / "twl06.txt", filter_by_length=False
+    )
+    source = {
+        w
+        for w in all_words
+        if MIN_WORD_LENGTH <= len(w) <= MAX_WORD_LENGTH
+    }
+    data = _collect_words(source, all_words)
     for length, entry in data.items():
         _write_words_file(
             _words_path(length, data_dir),

@@ -47,3 +47,15 @@ def test_plural_without_singular_in_source_is_not_plural():
     # tell, so we don't flag it.
     source = {"cranes", "slate"}
     assert _is_plural("cranes", source) is False
+
+
+def test_plural_with_short_singular_is_plural():
+    # "frog" is 4 letters and wouldn't be in the length-filtered source,
+    # but it's in the full word list, so "frogs" should still be flagged.
+    all_words = {"frog", "frogs", "crane", "cranes"}
+    assert _is_plural("frogs", all_words) is True
+
+
+def test_es_plural_with_short_singular_is_plural():
+    all_words = {"box", "boxes", "crane", "cranes"}
+    assert _is_plural("boxes", all_words) is True

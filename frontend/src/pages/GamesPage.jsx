@@ -44,8 +44,15 @@ function GamesPage() {
   }, [status, offset])
 
   const handleStatusChange = useCallback((next) => {
+    // Reset the data and flip into the loading state in the same render as
+    // the status change, so we never paint a frame with the new filter and
+    // the old (stale) total. Without this, switching to an empty filter can
+    // briefly flash the full-width empty state.
     setStatus(next)
     setOffset(0)
+    setGames([])
+    setTotal(0)
+    setLoading(true)
   }, [])
 
   const handleCreate = useCallback(

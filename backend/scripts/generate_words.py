@@ -21,12 +21,13 @@ Each file has the shape:
     aaron
     ...
 
-Answers are the top ANSWER_COUNT words by zipf frequency for that length
-that pass the answer filter (frequency floor, no proper nouns, no plurals).
-Guesses are the top GUESS_COUNT words by zipf frequency for that length
-that pass the guess filter (lower frequency floor only, so real words that
-happen to look like proper nouns are still accepted as guesses).
-Answers are always a subset of guesses.
+The source of truth is a TWL06 Scrabble word list (see SOURCE_PATH). TWL06
+already excludes proper nouns, so no name filtering is needed. Answers are
+the top ANSWER_COUNT words by zipf frequency for that length that pass the
+answer filter (frequency floor). Guesses are the top GUESS_COUNT words by
+zipf frequency for that length that pass the guess filter (lower frequency
+floor only, so real words that happen to be obscure are still accepted as
+guesses). Answers are always a subset of guesses.
 """
 
 from __future__ import annotations
@@ -34,7 +35,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from wordfreq import iter_wordlist, zipf_frequency
+from wordfreq import zipf_frequency
 
 from app.constants import MAX_WORD_LENGTH, MIN_WORD_LENGTH
 
@@ -48,72 +49,50 @@ ANSWER_COUNT = 2500
 GUESS_COUNT = 15000
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "app" / "data"
+SOURCE_PATH = DATA_DIR / "twl06.txt"
 
 
-def _is_likely_proper_noun(word: str) -> bool:
-    """Heuristic: a word is likely a proper noun if its capitalized form is
-    significantly more frequent than its lowercase form (e.g. "jeremy").
-
-    Only applied to answers. It produces false positives (e.g. "march",
-    "may"), which is acceptable for a curated answer list but not for the
-    guess list, where we want to accept any real word the player types.
-    """
-    lower = zipf_frequency(word, "en")
-    upper = zipf_frequency(word.capitalize(), "en")
-    return upper > lower + 1.0
-
-
-def _is_plural(word: str, all_words: set[str]) -> bool:
-    """Heuristic: a word is likely a plural if it ends in "s" and its
-    singular form is also a known word. Excludes common non-plural "s"
-    endings (glass, cactus, basis)."""
-    if not word.endswith("s"):
-        return False
-    if word.endswith(("ss", "us", "is")):
-        return False
-    return word[:-1] in all_words
+def _load_source_words(path: Path = SOURCE_PATH) -> set[str]:
+    """Load the TWL06 word list, lowercased, keeping only alphabetic words
+    within the supported length range."""
+    words: set[str] = set()
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            word = line.strip().lower()
+            if not word.isalpha():
+                continue
+            if not (MIN_WORD_LENGTH <= len(word) <= MAX_WORD_LENGTH):
+                continue
+            words.add(word)
+    return words
 
 
-def _collect_words() -> dict[int, dict[str, list[str]]]:
-    # First pass: collect all candidates that pass the guess filter.
-    # iter_wordlist yields words in descending frequency order, so the first
-    # N words we see for a given length are the top N by frequency.
+def _collect_words(source: set[str]) -> dict[int, dict[str, list[str]]]:
+    # Bucket the source words by length, then sort each bucket by descending
+    # zipf frequency so the most common words come first.
     buckets: dict[int, list[str]] = {
         n: [] for n in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH + 1)
     }
-    max_needed = max(GUESS_COUNT, ANSWER_COUNT)
+    for word in source:
+        buckets[len(word)].append(word)
 
-    for word in iter_wordlist("en"):
-        if not word.isalpha():
-            continue
-        length = len(word)
-        if length not in buckets:
-            continue
-        bucket = buckets[length]
-        if len(bucket) >= max_needed:
-            continue
-        if zipf_frequency(word, "en") < MIN_ZIPF_GUESSES:
-            continue
-        bucket.append(word)
-        if all(
-            len(buckets[n]) >= max_needed
-            for n in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH + 1)
-        ):
-            break
-
-    # Second pass: derive answers from the guess pool.
     result: dict[int, dict[str, list[str]]] = {}
     for length in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH + 1):
-        words = buckets[length]
-        all_words = set(words)
+        words = sorted(
+            buckets[length],
+            key=lambda w: zipf_frequency(w, "en"),
+            reverse=True,
+        )
         answers = [
             w
             for w in words
             if zipf_frequency(w, "en") >= MIN_ZIPF_ANSWERS
-            and not _is_likely_proper_noun(w)
-            and not _is_plural(w, all_words)
         ][:ANSWER_COUNT]
-        guesses = words[:GUESS_COUNT]
+        guesses = [
+            w
+            for w in words
+            if zipf_frequency(w, "en") >= MIN_ZIPF_GUESSES
+        ][:GUESS_COUNT]
         result[length] = {"answers": answers, "guesses": guesses}
     return result
 
@@ -138,7 +117,8 @@ def _write_words_file(
 
 
 def generate(data_dir: Path = DATA_DIR) -> Path:
-    data = _collect_words()
+    source = _load_source_words(data_dir / "twl06.txt")
+    data = _collect_words(source)
     for length, entry in data.items():
         _write_words_file(
             _words_path(length, data_dir),

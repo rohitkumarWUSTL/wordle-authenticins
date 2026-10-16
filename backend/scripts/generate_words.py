@@ -24,7 +24,8 @@ Each file has the shape:
 Answers are the top ANSWER_COUNT words by zipf frequency for that length
 that pass the answer filter (frequency floor, no proper nouns, no plurals).
 Guesses are the top GUESS_COUNT words by zipf frequency for that length
-that pass the guess filter (lower frequency floor, no proper nouns).
+that pass the guess filter (lower frequency floor only, so real words that
+happen to look like proper nouns are still accepted as guesses).
 Answers are always a subset of guesses.
 """
 
@@ -41,7 +42,7 @@ from app.constants import MAX_WORD_LENGTH, MIN_WORD_LENGTH
 # answer pool feels like Wordle's curated list, while guesses stay permissive
 # enough that players rarely hit "not a valid word".
 MIN_ZIPF_ANSWERS = 3.5
-MIN_ZIPF_GUESSES = 2.5
+MIN_ZIPF_GUESSES = 2.0
 
 ANSWER_COUNT = 2500
 GUESS_COUNT = 15000
@@ -51,7 +52,12 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "app" / "data"
 
 def _is_likely_proper_noun(word: str) -> bool:
     """Heuristic: a word is likely a proper noun if its capitalized form is
-    significantly more frequent than its lowercase form (e.g. "jeremy")."""
+    significantly more frequent than its lowercase form (e.g. "jeremy").
+
+    Only applied to answers. It produces false positives (e.g. "march",
+    "may"), which is acceptable for a curated answer list but not for the
+    guess list, where we want to accept any real word the player types.
+    """
     lower = zipf_frequency(word, "en")
     upper = zipf_frequency(word.capitalize(), "en")
     return upper > lower + 1.0
@@ -88,8 +94,6 @@ def _collect_words() -> dict[int, dict[str, list[str]]]:
             continue
         if zipf_frequency(word, "en") < MIN_ZIPF_GUESSES:
             continue
-        if _is_likely_proper_noun(word):
-            continue
         bucket.append(word)
         if all(
             len(buckets[n]) >= max_needed
@@ -106,6 +110,7 @@ def _collect_words() -> dict[int, dict[str, list[str]]]:
             w
             for w in words
             if zipf_frequency(w, "en") >= MIN_ZIPF_ANSWERS
+            and not _is_likely_proper_noun(w)
             and not _is_plural(w, all_words)
         ][:ANSWER_COUNT]
         guesses = words[:GUESS_COUNT]

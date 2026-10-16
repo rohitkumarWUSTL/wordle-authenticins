@@ -83,9 +83,16 @@ def _weighted_answers(length: int) -> tuple[str, ...]:
 
 
 def seed_dictionary() -> None:
-    """Ensure the words files exist for every supported length."""
+    """Ensure the words files exist and warm the in-memory caches.
+
+    Called at startup so the first request for a given word length doesn't
+    pay the cost of generating the file, parsing it, and expanding the
+    frequency-weighted answer pool.
+    """
     for length in range(MIN_WORD_LENGTH, MAX_WORD_LENGTH + 1):
         ensure_words_txt(length)
+        _load_words(length)
+        _weighted_answers(length)
 
 
 def is_valid_guess(word: str, length: int) -> bool:

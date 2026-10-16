@@ -338,6 +338,10 @@
   justify-content: center;
 }
 
+.game-give-up-row-hidden {
+  visibility: hidden;
+}
+
 .game-give-up-button {
   padding: 0.4rem 0.9rem;
   border-radius: 6px;

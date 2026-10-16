@@ -260,18 +260,23 @@ function GameDetailPage() {
         )}
       </div>
 
-      {!isFinished && (
-        <div className="game-give-up-row">
-          <button
-            type="button"
-            className="game-give-up-button"
-            onClick={() => setShowGiveUp(true)}
-            disabled={submitting}
-          >
-            Give up
-          </button>
-        </div>
-      )}
+      {/* The give-up row is always rendered so its height is reserved even
+          after the game ends. Without this, removing it on win/loss would
+          shift the board and keyboard up. */}
+      <div
+        className={`game-give-up-row${
+          isFinished ? ' game-give-up-row-hidden' : ''
+        }`}
+      >
+        <button
+          type="button"
+          className="game-give-up-button"
+          onClick={() => setShowGiveUp(true)}
+          disabled={submitting || isFinished}
+        >
+          Give up
+        </button>
+      </div>
 
       <div className="game-board">
         <GuessGrid

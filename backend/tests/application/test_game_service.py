@@ -11,7 +11,7 @@ from app.models.errors import (
 from app.models.game import GameStatus
 from app.repositories.dictionary_repository import DictionaryRepository
 from app.repositories.game_repository import GameRepository
-from tests._words import seed_answer, seed_empty, seed_guess
+from tests._words import seed_answer, seed_empty, seed_scrabble
 
 
 # --- _generate_feedback ---------------------------------------------------
@@ -71,6 +71,8 @@ async def _make_game(
     target: str = "apple",
 ) -> int:
     seed_answer(target)
+    # Make the target guessable too, so tests that guess it can win.
+    seed_scrabble([target])
     game = await game_service.create_game(len(target))
     return game.id
 
@@ -105,7 +107,7 @@ async def test_submit_guess_happy_path(
     dictionary_repo: DictionaryRepository,
 ) -> None:
     game_id = await _make_game(game_service)
-    seed_guess("eppla")
+    seed_scrabble(["apple", "eppla"])
 
     guess = await game_service.submit_guess(game_id, "eppla")
     assert guess.word == "eppla"
@@ -124,7 +126,7 @@ async def test_submit_guess_normalizes_case(
     dictionary_repo: DictionaryRepository,
 ) -> None:
     game_id = await _make_game(game_service)
-    seed_guess("eppla")
+    seed_scrabble(["apple", "eppla"])
 
     guess = await game_service.submit_guess(game_id, "EPPLA")
     assert guess.word == "eppla"
@@ -149,9 +151,8 @@ async def test_submit_guess_not_in_dictionary(
     dictionary_repo: DictionaryRepository,
 ) -> None:
     game_id = await _make_game(game_service)
-    # Explicitly seed an empty guess list so the assertion doesn't depend on
-    # what the answer-seeding helper happens to write.
-    seed_empty(5)
+    # Seed a scrabble list that does not contain the guess.
+    seed_scrabble(["apple"])
     with pytest.raises(InvalidGuess, match="not a valid word"):
         await game_service.submit_guess(game_id, "zzzzz")
 
@@ -161,7 +162,7 @@ async def test_submit_guess_win(
     dictionary_repo: DictionaryRepository,
 ) -> None:
     game_id = await _make_game(game_service)
-    seed_guess("apple")
+    seed_scrabble(["apple"])
 
     await game_service.submit_guess(game_id, "apple")
     game = await game_service.get_game(game_id)
@@ -173,7 +174,7 @@ async def test_submit_guess_after_finished(
     dictionary_repo: DictionaryRepository,
 ) -> None:
     game_id = await _make_game(game_service)
-    seed_guess("apple")
+    seed_scrabble(["apple"])
 
     await game_service.submit_guess(game_id, "apple")
     with pytest.raises(GameAlreadyFinished):
@@ -185,7 +186,7 @@ async def test_submit_guess_loss_after_max_attempts(
     dictionary_repo: DictionaryRepository,
 ) -> None:
     game_id = await _make_game(game_service)
-    seed_guess("eppla")
+    seed_scrabble(["apple", "eppla"])
 
     for _ in range(6):
         await game_service.submit_guess(game_id, "eppla")
@@ -218,7 +219,7 @@ async def test_give_up_after_finished(
     dictionary_repo: DictionaryRepository,
 ) -> None:
     game_id = await _make_game(game_service)
-    seed_guess("apple")
+    seed_scrabble(["apple"])
 
     await game_service.submit_guess(game_id, "apple")
     with pytest.raises(GameAlreadyFinished):

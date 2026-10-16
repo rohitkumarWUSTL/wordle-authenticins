@@ -3,7 +3,7 @@ from __future__ import annotations
 from httpx import AsyncClient
 
 from app.repositories.dictionary_repository import DictionaryRepository
-from tests._words import seed_answer, seed_empty, seed_guess
+from tests._words import seed_answer, seed_empty, seed_scrabble
 
 
 async def test_create_game(
@@ -43,7 +43,7 @@ async def test_list_games_filter_by_status(
     client: AsyncClient, dictionary_repo: DictionaryRepository
 ) -> None:
     seed_answer("apple")
-    seed_guess("apple")
+    seed_scrabble(["apple"])
 
     in_progress = await client.post("/games", json={"word_length": 5})
     finished = await client.post("/games", json={"word_length": 5})
@@ -99,7 +99,7 @@ async def test_submit_guess(
     client: AsyncClient, dictionary_repo: DictionaryRepository
 ) -> None:
     seed_answer("apple")
-    seed_guess("eppla")
+    seed_scrabble(["apple", "eppla"])
     created = await client.post("/games", json={"word_length": 5})
     game_id = created.json()["id"]
 
@@ -108,9 +108,13 @@ async def test_submit_guess(
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["word"] == "eppla"
-    assert body["guess_number"] == 1
-    assert [item["color"] for item in body["feedback"]] == [
+    # The response is the full game, not just the guess.
+    assert body["id"] == game_id
+    assert body["status"] == "IN_PROGRESS"
+    assert len(body["guesses"]) == 1
+    assert body["guesses"][0]["word"] == "eppla"
+    assert body["guesses"][0]["guess_number"] == 1
+    assert [item["color"] for item in body["guesses"][0]["feedback"]] == [
         "YELLOW",
         "GREEN",
         "GREEN",
@@ -131,9 +135,8 @@ async def test_submit_guess_invalid_word(
     created = await client.post("/games", json={"word_length": 5})
     game_id = created.json()["id"]
 
-    # Explicitly seed an empty guess list so the assertion doesn't depend on
-    # what the answer-seeding helper happens to write.
-    seed_empty(5)
+    # Seed a scrabble list that does not contain the guess.
+    seed_scrabble(["apple"])
     response = await client.post(
         f"/games/{game_id}/guesses", json={"word": "zzzzz"}
     )
@@ -144,7 +147,7 @@ async def test_submit_guess_after_finished(
     client: AsyncClient, dictionary_repo: DictionaryRepository
 ) -> None:
     seed_answer("apple")
-    seed_guess("apple")
+    seed_scrabble(["apple"])
     created = await client.post("/games", json={"word_length": 5})
     game_id = created.json()["id"]
 
@@ -183,7 +186,7 @@ async def test_give_up_after_finished(
     client: AsyncClient, dictionary_repo: DictionaryRepository
 ) -> None:
     seed_answer("apple")
-    seed_guess("apple")
+    seed_scrabble(["apple"])
     created = await client.post("/games", json={"word_length": 5})
     game_id = created.json()["id"]
 

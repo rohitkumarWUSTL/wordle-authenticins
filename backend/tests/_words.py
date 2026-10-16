@@ -2,8 +2,12 @@
 
 The dictionary reads from ``dictionary.DATA_DIR`` (monkeypatched to a
 ``tmp_path`` by the ``data_dir`` fixture in ``conftest.py``). These helpers
-write into that directory and clear the loader cache so the next read picks
-up the new contents.
+write into that directory and clear the loader caches so the next read
+picks up the new contents.
+
+Guess validation reads ``twl06.txt`` directly (see ``app/dictionary.py``),
+so tests that need a word to be guessable must call ``seed_scrabble``.
+``seed_answer`` only affects the answer pool.
 """
 
 from __future__ import annotations
@@ -48,6 +52,7 @@ def write_words_file(
 
 def _clear_caches() -> None:
     dictionary._load_words.cache_clear()
+    dictionary._load_scrabble_words.cache_clear()
 
 
 def seed_answer(word: str) -> None:
@@ -63,16 +68,16 @@ def seed_answer(word: str) -> None:
     _clear_caches()
 
 
-def seed_guess(word: str) -> None:
-    data_dir = dictionary.DATA_DIR
-    length = len(word)
-    path = data_dir / f"words_{length}.txt"
-    answers: list[str] = []
-    guesses: list[str] = []
-    if path.exists():
-        answers, guesses = read_words_file(path)
-    guesses.append(word)
-    write_words_file(data_dir, length, answers, guesses)
+def seed_scrabble(words: list[str]) -> None:
+    """Write a twl06.txt containing ``words`` (uppercased, like the real file).
+
+    Guess validation reads this file directly, so any word a test wants to
+    be guessable must be seeded here. Overwrites any existing file.
+    """
+    path = dictionary.DATA_DIR / "twl06.txt"
+    with path.open("w", encoding="utf-8") as f:
+        for word in words:
+            f.write(f"{word.upper()}\n")
     _clear_caches()
 
 

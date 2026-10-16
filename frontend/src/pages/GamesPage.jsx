@@ -57,19 +57,21 @@ function GamesPage() {
     [navigate],
   )
 
-  const isEmpty = !loading && !error && total === 0
+  const hasFilter = status !== STATUS_ALL
+  const isEmpty = !loading && !error && total === 0 && !hasFilter
+  const isFilteredEmpty = !loading && !error && total === 0 && hasFilter
 
   return (
     <div className="games-page">
-      <header className="games-header">
-        <h1>Wordle</h1>
-        {!isEmpty && (
+      {!isEmpty && (
+        <header className="games-header">
+          <h1>Wordle</h1>
           <div className="games-header-actions">
             <StatusFilter value={status} onChange={handleStatusChange} />
             <NewGameButton variant="compact" onClick={() => setShowNewGame(true)} />
           </div>
-        )}
-      </header>
+        </header>
+      )}
 
       {loading && <p className="games-status">Loading…</p>}
       {error && <p className="games-status games-error">Error: {error}</p>}
@@ -83,7 +85,11 @@ function GamesPage() {
         </div>
       )}
 
-      {!loading && !error && !isEmpty && (
+      {isFilteredEmpty && (
+        <p className="games-status">No games match this filter.</p>
+      )}
+
+      {!loading && !error && !isEmpty && !isFilteredEmpty && (
         <>
           <GameList games={games} />
           <Pagination

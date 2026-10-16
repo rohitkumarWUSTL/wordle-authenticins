@@ -281,8 +281,140 @@
   gap: 1rem;
 }
 
-.game-detail-placeholder {
-  color: #888;
+.game-status-banner {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 500;
+  background-color: #2b4a7a;
+  color: #d6e4f5;
+}
+
+.game-status-banner.game-status-won {
+  background-color: #1f6f43;
+  color: #d6f5e3;
+}
+
+.game-status-banner.game-status-lost {
+  background-color: #7a2b2b;
+  color: #f5d6d6;
+}
+
+.game-guess-error {
+  margin: 0;
+  text-align: center;
+  color: #e5484d;
+  font-size: 0.9rem;
+}
+
+.guess-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.guess-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.guess-cell {
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #444;
+  border-radius: 6px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #eee;
+  background-color: transparent;
+}
+
+.guess-cell-active {
+  border-color: #888;
+}
+
+.guess-cell-green {
+  background-color: #1f6f43;
+  border-color: #1f6f43;
+  color: #fff;
+}
+
+.guess-cell-yellow {
+  background-color: #b59f3b;
+  border-color: #b59f3b;
+  color: #fff;
+}
+
+.guess-cell-gray {
+  background-color: #3a3a3c;
+  border-color: #3a3a3c;
+  color: #fff;
+}
+
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.keyboard-row {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.keyboard-key {
+  min-width: 2rem;
+  height: 3rem;
+  padding: 0 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background-color: #2a2a2a;
+  color: #eee;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.keyboard-key:hover:not(:disabled) {
+  background-color: #3a3a3a;
+}
+
+.keyboard-key:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.keyboard-key-wide {
+  min-width: 4rem;
+  font-size: 0.75rem;
+}
+
+.keyboard-key-green {
+  background-color: #1f6f43;
+  border-color: #1f6f43;
+  color: #fff;
+}
+
+.keyboard-key-yellow {
+  background-color: #b59f3b;
+  border-color: #b59f3b;
+  color: #fff;
+}
+
+.keyboard-key-gray {
+  background-color: #3a3a3c;
+  border-color: #3a3a3c;
+  color: #fff;
 }
 
 @media (prefers-color-scheme: light) {
@@ -320,5 +452,24 @@
   .status-in_progress {
     background-color: #d6e4f5;
     color: #2b4a7a;
+  }
+
+  .guess-cell {
+    border-color: #ccc;
+    color: #333;
+  }
+
+  .guess-cell-active {
+    border-color: #888;
+  }
+
+  .keyboard-key {
+    background-color: #e8e8e8;
+    border-color: #ccc;
+    color: #333;
+  }
+
+  .keyboard-key:hover:not(:disabled) {
+    background-color: #dcdcdc;
   }
 }

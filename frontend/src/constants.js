@@ -10,3 +10,9 @@ export const PAGE_SIZE = 20
 
 export const STATUS_ALL = 'ALL'
 export const STATUS_IN_PROGRESS = 'IN_PROGRESS'
+
+export const KEYBOARD_ROWS = [
+  ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+  ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+  ['ENTER', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'BACKSPACE'],
+]

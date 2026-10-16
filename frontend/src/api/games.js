@@ -22,3 +22,10 @@ export async function createGame({ wordLength }) {
 export async function getGame(id) {
   return request(`/games/${id}`)
 }
+
+export async function submitGuess(id, word) {
+  return request(`/games/${id}/guesses`, {
+    method: 'POST',
+    body: JSON.stringify({ word }),
+  })
+}

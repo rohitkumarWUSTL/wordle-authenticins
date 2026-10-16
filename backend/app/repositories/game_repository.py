@@ -62,10 +62,11 @@ class GameRepository:
         )
         self._session.add(guess)
         game.status = status
-        # Keep the in-memory collection in sync so the returned game
-        # includes the new guess. The session is configured with
-        # expire_on_commit=False, so the collection survives the commit.
-        game.guesses.append(guess)
         await self._session.commit()
         await self._session.refresh(guess)
+        # Refresh the whole game so server-side values (notably updated_at,
+        # which is set by onupdate=func.now()) are loaded while we're still
+        # in the async context. Without this, serializing the game triggers
+        # a lazy load outside the greenlet and raises MissingGreenlet.
+        await self._session.refresh(game)
         return guess

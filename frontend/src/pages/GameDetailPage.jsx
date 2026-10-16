@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getGame, giveUp, submitGuess } from '../api/games.js'
 import ConfirmModal from '../components/ConfirmModal.jsx'
@@ -7,6 +7,11 @@ import Keyboard from '../components/Keyboard.jsx'
 
 const COLOR_RANK = { GREEN: 3, YELLOW: 2, GRAY: 1 }
 
+const FLIP_STAGGER_MS = 100
+const FLIP_DURATION_MS = 500
+const SHAKE_DURATION_MS = 400
+const TOAST_DURATION_MS = 1500
+
 function GameDetailPage() {
   const { id } = useParams()
   const [game, setGame] = useState(null)
@@ -14,8 +19,14 @@ function GameDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
-  const [guessError, setGuessError] = useState(null)
+  const [toast, setToast] = useState(null)
   const [showGiveUp, setShowGiveUp] = useState(false)
+  const [animatingRow, setAnimatingRow] = useState(-1)
+  const [shake, setShake] = useState(false)
+
+  const toastTimer = useRef(null)
+  const animTimer = useRef(null)
+  const shakeTimer = useRef(null)
 
   useEffect(() => {
     let cancelled = false
@@ -41,6 +52,14 @@ function GameDetailPage() {
     }
   }, [id])
 
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current)
+      if (animTimer.current) clearTimeout(animTimer.current)
+      if (shakeTimer.current) clearTimeout(shakeTimer.current)
+    }
+  }, [])
+
   const isFinished = game ? game.status !== 'IN_PROGRESS' : false
   const wordLength = game ? game.word_length : 0
   const maxGuesses = game ? game.word_length + 1 : 0
@@ -60,10 +79,21 @@ function GameDetailPage() {
     return states
   }, [game])
 
+  const showToast = useCallback((message) => {
+    setToast(message)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(null), TOAST_DURATION_MS)
+  }, [])
+
+  const triggerShake = useCallback(() => {
+    setShake(true)
+    if (shakeTimer.current) clearTimeout(shakeTimer.current)
+    shakeTimer.current = setTimeout(() => setShake(false), SHAKE_DURATION_MS)
+  }, [])
+
   const handleKey = useCallback(
     (letter) => {
       if (isFinished || submitting) return
-      setGuessError(null)
       setCurrentGuess((prev) =>
         prev.length < wordLength ? prev + letter : prev,
       )
@@ -73,45 +103,59 @@ function GameDetailPage() {
 
   const handleBackspace = useCallback(() => {
     if (isFinished || submitting) return
-    setGuessError(null)
     setCurrentGuess((prev) => prev.slice(0, -1))
   }, [isFinished, submitting])
 
   const handleEnter = useCallback(async () => {
     if (isFinished || submitting) return
     if (currentGuess.length !== wordLength) {
-      setGuessError(`Guess must be ${wordLength} letters`)
+      showToast('Not enough letters')
+      triggerShake()
       return
     }
 
     setSubmitting(true)
-    setGuessError(null)
     try {
       await submitGuess(id, currentGuess)
       const updated = await getGame(id)
+      const newRowIndex = updated.guesses.length - 1
       setGame(updated)
       setCurrentGuess('')
+      setAnimatingRow(newRowIndex)
+      if (animTimer.current) clearTimeout(animTimer.current)
+      animTimer.current = setTimeout(
+        () => setAnimatingRow(-1),
+        wordLength * FLIP_STAGGER_MS + FLIP_DURATION_MS,
+      )
     } catch (err) {
-      setGuessError(err.message)
+      showToast(err.message)
+      triggerShake()
     } finally {
       setSubmitting(false)
     }
-  }, [currentGuess, id, isFinished, submitting, wordLength])
+  }, [
+    currentGuess,
+    id,
+    isFinished,
+    submitting,
+    wordLength,
+    showToast,
+    triggerShake,
+  ])
 
   const handleGiveUpConfirm = useCallback(async () => {
     setShowGiveUp(false)
     setSubmitting(true)
-    setGuessError(null)
     try {
       const updated = await giveUp(id)
       setGame(updated)
       setCurrentGuess('')
     } catch (err) {
-      setGuessError(err.message)
+      showToast(err.message)
     } finally {
       setSubmitting(false)
     }
-  }, [id])
+  }, [id, showToast])
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -190,14 +234,18 @@ function GameDetailPage() {
         </div>
       )}
 
-      <GuessGrid
-        guesses={game.guesses}
-        wordLength={wordLength}
-        maxGuesses={maxGuesses}
-        currentGuess={currentGuess}
-      />
-
-      {guessError && <p className="game-guess-error">{guessError}</p>}
+      <div className="game-board">
+        <GuessGrid
+          guesses={game.guesses}
+          wordLength={wordLength}
+          maxGuesses={maxGuesses}
+          currentGuess={currentGuess}
+          animatingRow={animatingRow}
+          shake={shake}
+          won={game.status === 'WON'}
+        />
+        {toast && <div className="game-toast">{toast}</div>}
+      </div>
 
       <Keyboard
         onKey={handleKey}

@@ -4,30 +4,67 @@ const COLOR_CLASS = {
   GRAY: 'guess-cell-gray',
 }
 
-function GuessGrid({ guesses, wordLength, maxGuesses, currentGuess }) {
+const COLOR_HEX = {
+  GREEN: '#6ca965',
+  YELLOW: '#c8b653',
+  GRAY: '#787c7f',
+}
+
+function GuessGrid({
+  guesses,
+  wordLength,
+  maxGuesses,
+  currentGuess,
+  animatingRow = -1,
+  shake = false,
+  won = false,
+}) {
   const rows = []
 
   for (let rowIndex = 0; rowIndex < maxGuesses; rowIndex += 1) {
     const guess = guesses[rowIndex]
+    const isActiveRow = !guess && rowIndex === guesses.length
+    const isAnimating = rowIndex === animatingRow
+    const isWinningRow = won && rowIndex === guesses.length - 1
+    const rowClasses = ['guess-row']
+    if (shake && isActiveRow) rowClasses.push('guess-row-shake')
+
     const cells = []
 
     for (let colIndex = 0; colIndex < wordLength; colIndex += 1) {
       let letter = ''
       let colorClass = ''
+      let cellColor = null
 
       if (guess) {
         const item = guess.feedback[colIndex]
         letter = item ? item.letter : ''
         colorClass = item ? COLOR_CLASS[item.color] || '' : ''
-      } else if (rowIndex === guesses.length) {
+        cellColor = item ? COLOR_HEX[item.color] || null : null
+      } else if (isActiveRow) {
         letter = currentGuess[colIndex] || ''
         colorClass = letter ? 'guess-cell-active' : ''
+      }
+
+      const cellClasses = ['guess-cell']
+      if (colorClass) cellClasses.push(colorClass)
+      if (isAnimating) cellClasses.push('guess-cell-flip')
+      if (isWinningRow) cellClasses.push('guess-cell-bounce')
+
+      const style = {}
+      if (isAnimating && cellColor) {
+        style['--cell-color'] = cellColor
+        style['--col'] = colIndex
+      }
+      if (isWinningRow) {
+        style['--col'] = colIndex
       }
 
       cells.push(
         <div
           key={colIndex}
-          className={`guess-cell ${colorClass}`.trim()}
+          className={cellClasses.join(' ')}
+          style={Object.keys(style).length > 0 ? style : undefined}
         >
           {letter}
         </div>,
@@ -35,7 +72,7 @@ function GuessGrid({ guesses, wordLength, maxGuesses, currentGuess }) {
     }
 
     rows.push(
-      <div key={rowIndex} className="guess-row">
+      <div key={rowIndex} className={rowClasses.join(' ')}>
         {cells}
       </div>,
     )

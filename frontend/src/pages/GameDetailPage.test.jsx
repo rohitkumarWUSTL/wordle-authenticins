@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -43,13 +43,25 @@ function renderPage() {
 }
 
 describe('GameDetailPage', () => {
+  let user
+
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
+    // @testing-library/dom's waitFor only takes the fake-timer code path
+    // when `jest` is defined. Under Vitest it isn't, so waitFor falls back
+    // to real timers and times out. Define a minimal `jest` shim so waitFor
+    // can advance the fake clock.
+    globalThis.jest = {
+      advanceTimersByTime: (ms) => vi.advanceTimersByTime(ms),
+    }
+    user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
   })
 
   afterEach(() => {
+    cleanup()
     vi.useRealTimers()
     vi.clearAllMocks()
+    delete globalThis.jest
   })
 
   it('shows the guess counter while the game is in progress', async () => {
@@ -90,17 +102,15 @@ describe('GameDetailPage', () => {
     await screen.findByText('Guess 1 of 6')
 
     for (const letter of 'crane') {
-      await userEvent.click(screen.getByRole('button', { name: letter }))
+      await user.click(screen.getByRole('button', { name: letter }))
     }
-    await userEvent.click(screen.getByRole('button', { name: 'ENTER' }))
+    await user.click(screen.getByRole('button', { name: 'ENTER' }))
 
-    // Immediately after submitting, the banner should still show the counter.
     await waitFor(() => {
       expect(screen.getByText('Guess 2 of 6')).toBeInTheDocument()
     })
     expect(screen.queryByText('You won! 🎉')).not.toBeInTheDocument()
 
-    // Advance past the flip animation.
     const revealDelay = 5 * FLIP_STAGGER_MS + FLIP_DURATION_MS
     await vi.advanceTimersByTimeAsync(revealDelay)
 
@@ -121,15 +131,14 @@ describe('GameDetailPage', () => {
     await screen.findByText('Guess 1 of 6')
 
     for (const letter of 'crane') {
-      await userEvent.click(screen.getByRole('button', { name: letter }))
+      await user.click(screen.getByRole('button', { name: letter }))
     }
-    await userEvent.click(screen.getByRole('button', { name: 'ENTER' }))
+    await user.click(screen.getByRole('button', { name: 'ENTER' }))
 
     await waitFor(() => {
       expect(screen.getByText('Guess 2 of 6')).toBeInTheDocument()
     })
 
-    // Before the animation finishes, the keyboard keys are not yet colored.
     expect(screen.getByRole('button', { name: 'c' })).not.toHaveClass(
       'keyboard-key-green',
     )
@@ -149,7 +158,7 @@ describe('GameDetailPage', () => {
     renderPage()
     await screen.findByText('Guess 1 of 6')
 
-    await userEvent.click(screen.getByRole('button', { name: 'ENTER' }))
+    await user.click(screen.getByRole('button', { name: 'ENTER' }))
 
     expect(await screen.findByText('Not enough letters')).toBeInTheDocument()
     expect(gamesApi.submitGuess).not.toHaveBeenCalled()

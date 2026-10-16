@@ -109,7 +109,8 @@ async def test_submit_guess_happy_path(
     game_id = await _make_game(game_service)
     seed_scrabble(["apple", "eppla"])
 
-    guess = await game_service.submit_guess(game_id, "eppla")
+    game = await game_service.submit_guess(game_id, "eppla")
+    guess = game.guesses[-1]
     assert guess.word == "eppla"
     assert guess.guess_number == 1
     assert [item["color"] for item in guess.feedback] == [
@@ -128,8 +129,8 @@ async def test_submit_guess_normalizes_case(
     game_id = await _make_game(game_service)
     seed_scrabble(["apple", "eppla"])
 
-    guess = await game_service.submit_guess(game_id, "EPPLA")
-    assert guess.word == "eppla"
+    game = await game_service.submit_guess(game_id, "EPPLA")
+    assert game.guesses[-1].word == "eppla"
 
 
 async def test_submit_guess_game_not_found(game_service: GameService) -> None:

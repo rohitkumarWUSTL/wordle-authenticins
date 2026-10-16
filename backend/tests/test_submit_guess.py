@@ -10,6 +10,7 @@ needing a DB or the dictionary.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import datetime, timezone
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -31,11 +32,14 @@ class FakeGameService:
 
 
 def _make_game(status: GameStatus = GameStatus.IN_PROGRESS) -> Game:
+    now = datetime.now(timezone.utc)
     game = Game(
         id=1,
         word_length=5,
         target_word="crane",
         status=status,
+        created_at=now,
+        updated_at=now,
     )
     game.guesses = [
         Guess(

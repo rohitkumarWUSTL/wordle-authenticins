@@ -98,6 +98,12 @@ To run in detached mode (background):
 docker compose up -d --build
 ```
 
+To run unit tests, after running the container in detached mode:
+
+```bash
+docker compose exec backend pytest
+```
+
 To stop the container:
 
 ```bash
